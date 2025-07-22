@@ -30,8 +30,10 @@ int main(int argc, char *argv[])
     TrackListModel trackListModel;
     PlaybackManager playbackManager;
 
-    qmlRegisterType<TrackListModel>("com.example", 1, 0, "TrackListModel");
-    qDebug() << "[main] TracklistModel.cpp QML Registered";
+	// Ensures enum can be used in Main.qml and TrackListPane.qml
+	qmlRegisterUncreatableType<TrackListModel>(
+    "com.librify", 1, 0, "TrackListModel",
+    "Enums are only used for accessing constants");
 
     // --- Connect Signals/Slots ---
     qDebug() << "[main] requestAccessToken => authorizationCodeReceived: Connected";
@@ -65,10 +67,10 @@ int main(int argc, char *argv[])
     int fontId = QFontDatabase::addApplicationFont(":/fonts/yeezy_tstar-bold-webfont.ttf");
     QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
     if (!fontFamilies.isEmpty()) {
-		qDebug() << "[main] error: Failed to load font family: " << fontFamilies;
         QFont defaultFont(fontFamilies.first());
         app.setFont(defaultFont);
     } else { // Set a fallback system font if custom font loading fails
+		qDebug() << "[main] error: Failed to load font family: " << fontFamilies;
         QFont defaultFont("Segoe UI");
         app.setFont(defaultFont);
     }

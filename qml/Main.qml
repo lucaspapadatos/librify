@@ -5,6 +5,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15 as QWindow
 import QtMultimedia 6.8
 import Qt5Compat.GraphicalEffects
+import com.librify 1.0
 
 // Import the new components (assuming they are in the same directory)
 import "."
@@ -74,7 +75,7 @@ Window {
                 console.error("[Main] playTrackAtIndex: Track object or filePath is invalid for index", index);
                 return;
             }
-            var trackUrl = Qt.resolvedUrl(track.filePath);
+            var trackUrl = "file://" + track.filePath;
             if (trackPlayer.source === trackUrl && trackPlayer.playbackState === MediaPlayer.PlayingState) {
                 if (currentlyPlayingIndex === index) return; // Truly the same track and index
             }
@@ -83,7 +84,7 @@ Window {
             trackPlayer.play();
             currentlyPlayingIndex = index;
             currentlyPlayingFilePath = track.filePath;
-            console.log("[Main] NOW PLAYING:", currentlyPlayingFilePath, "at index", index, "URL:", trackUrl);
+			console.log("[Main] NOW PLAYING:", currentlyPlayingFilePath, "at index", index, "URL:", trackUrl);
         }
     }
     function playCurrentOrFirst() {
@@ -247,7 +248,7 @@ Window {
                 id: titleIcon
                 width: 30
                 height: 30
-                source: ":/icons/pngegg.png"
+                source: "qrc:/icons/pngegg.png"
                 fillMode: Image.PreserveAspectFit
             }
 

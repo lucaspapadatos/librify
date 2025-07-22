@@ -109,7 +109,7 @@ Rectangle {
                     width: 40
                     height: 40
                     anchors.verticalCenter: parent.verticalCenter
-                    source: prevMouseArea.pressed ? ":/icons/pressed_prev.png" : ":/icons/unpressed_prev.png"
+                    source: prevMouseArea.pressed ? "qrc:/icons/pressed_prev.png" : "qrc:/icons/unpressed_prev.png"
                     fillMode: Image.PreserveAspectFit
                     smooth: true
                     MouseArea {
@@ -143,7 +143,7 @@ Rectangle {
                     enabled: controlsEnabled
                     property bool isPlaying: mediaPlayerInstance ?
                         (mediaPlayerInstance.playbackState === MediaPlayer.PlayingState) : false
-                    source: isPlaying ? ":/icons/pressed_playpause.png" : ":/icons/unpressed_playpause.png"
+                    source: isPlaying ? "qrc:/icons/pressed_playpause.png" : "qrc:/icons/unpressed_playpause.png"
                     MouseArea {
                         id: playMouseArea
                         anchors.fill: parent
@@ -190,7 +190,7 @@ Rectangle {
                     width: 40
                     height: 40
                     y: 5
-                    source: nextMouseArea.pressed ? ":/icons/pressed_next.png" : ":/icons/unpressed_next.png"
+                    source: nextMouseArea.pressed ? "qrc:/icons/pressed_next.png" : "qrc:/icons/unpressed_next.png"
                     fillMode: Image.PreserveAspectFit
                     smooth: true
                     MouseArea {

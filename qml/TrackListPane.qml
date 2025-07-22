@@ -4,6 +4,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import Qt5Compat.GraphicalEffects // For DropShadow effect
 import QtQuick.Window 2.15
+import com.librify 1.0
 
 // Root item is a Rectangle that behaves like the TrackListPane
 Rectangle {
