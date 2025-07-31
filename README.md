@@ -174,3 +174,13 @@ classDiagram
     MediaPlayer -- AudioOutput : uses
     PlaybackManager_cpp ..> AudioOutput : controls volume of
 ```
+
+## 🚀 Next Steps & Future Roadmap
+
+*   **Local Playlists**: Add custom playlists with offline capabilities.
+*   **Improved UI**: Modify UI for best PC and Android experience.
+*   **Hybrid Music Library**: Integrate Spotify library in one unified interface.
+*   **Cross-Platform**: Add and adapt code for native Android development and deployment on the Qt framework.
+*   **Custom Skins**: Allow for ease of creating and adding custom skins.
+*   **Shuffle and Repeat**: Create simple randomized selection of a playlist and allow for repeating songs and playlists.
+*   **Advanced Algorithm & Smart Search**: Add automatic tags for songs to create robust shuffle and search algorithm.
