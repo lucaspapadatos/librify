@@ -17,7 +17,8 @@ Rectangle {
     property string sourceIcon: "qrc:/icons/artist_icon.png"
     property bool showToggle: false
     property string currentSelectedId: ""  // Track currently selected item ID
-    property int defaultAllTracksIndex: -1 // Index of the ALL TRACKS item
+	property int defaultAllTracksIndex: -1 // Index of the ALL TRACKS item
+    property real rowScale: 1.0
 
     // --- SIGNALS ---
     signal collapseToggleRequested
@@ -26,16 +27,11 @@ Rectangle {
     signal tracklistRequested(string sourceId, string sourceType)
 
     // --- CONSTANTS ---
-    readonly property int collapseButtonHeight: 30
     readonly property int topSpacing: 8
     readonly property string allTracksId: "*ALL_TRACKS*"
-
-    property real rowScale: 1.0
     readonly property real baseRowHeight: 45
     readonly property real baseFontSize: 12
     readonly property real baseImageSize: 24
-
-
 
     // --- FONTS ---
     FontLoader {
@@ -43,7 +39,6 @@ Rectangle {
         source: "qrc:/fonts/yeezy_tstar-bold-webfont.ttf"
     }
 
-    // Global mouse area for cursor management
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
@@ -51,99 +46,39 @@ Rectangle {
         propagateComposedEvents: true
     }
 
-    // *** HAMBURGER button top left ***
-    Rectangle {
-        id: collapseButtonContainer
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.margins: 5
-        width: 30
-        height: 30
-        radius: 4
-        color: closeMouseArea.pressed ? "#33FFFFFF" :
-              (closeMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
-        border.color: "#666"
-        border.width: 1
-
-        Image {
-            id: collapseButton
-            anchors.centerIn: parent
-            width: 30
-            height: 30
-            source: collapsed ? "qrc:/icons/unpressed_hamburger.png" : "qrc:/icons/pressed_hamburger.png"
-        }
-
-        MouseArea {
-            id: closeMouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: sidebarPane.collapseToggleRequested()
-        }
-    }
-    // *** END HAMBURGER button top left ***
-
-    // --- SIDEBAR COLUMN LAYOUT ---
+    // --- UI LAYOUT ---
     ColumnLayout {
         id: sidebarColumn
-        anchors.fill: parent
-        anchors.topMargin: collapseButtonHeight + topSpacing
-        anchors.leftMargin: 8; anchors.rightMargin: 8; anchors.bottomMargin: 8
-        spacing: 5
-
-        // Group By Button
-        Rectangle {
-            id: sourcesLabel
-            Layout.fillWidth: true
-            visible: !collapsed
-            height: 30
+        anchors.fill: parent; anchors.margins: topSpacing; spacing: 5
+		
+		Rectangle {
+            id: settingsButton
+            Layout.fillWidth: true; height: 30; visible: !collapsed
             radius: 4
-            color: sourcesMouseArea.pressed ? "#33FFFFFF" :
-                  (sourcesMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
-            border.color: sourcesLabel.enabled ? "#666" : "#444"
-            border.width: 1
-
+            color: settingsMouseArea.pressed ? "#33FFFFFF" :
+                  (settingsMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
             Row {
-                anchors.centerIn: parent
-                spacing: 8
-                Image {
-                    id: sourcesIcon
-                    source: sourceIcon
-                    width: 16
-                    height: 16
-                    anchors.verticalCenter: parent.verticalCenter
-                }
+                anchors.centerIn: parent; spacing: 8
                 Text {
-                    id: sourceText
                     font.family: customFont.name
-                    text: "Group by: " + currentGrouping
+                    text: "Settings"
                     color: "white"
                     font.pixelSize: 12
                     anchors.verticalCenter: parent.verticalCenter
                 }
             }
-
             MouseArea {
-                id: sourcesMouseArea
+                id: settingsMouseArea
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    if (currentGrouping === "ARTIST") {
-                        currentGrouping = "ALBUM"
-                        sourceIcon = "qrc:/icons/all_tracks_icon.png"
-                    } else if (currentGrouping === "ALBUM") {
-                        currentGrouping = "PLAYLIST"
-                        sourceIcon = "qrc:/icons/all_tracks_icon.png"
-                    } else {
-                        currentGrouping = "ARTIST"
-                        sourceIcon = "qrc:/icons/artist_icon.png"
-                    }
+					console.log("[SidebarPane] Settings button clicked")
+					sidebarSettings.openSettings()
                 }
             }
         }
 
-        // Toggle Button SINGLES/ALBUMS (visible only when Group By is ALBUM)
         Rectangle {
             id: toggleContainer
             Layout.fillWidth: true
@@ -151,37 +86,30 @@ Rectangle {
             radius: 4
             visible: !collapsed && currentGrouping === "ALBUM"
             color: "transparent"
-
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 10
                 anchors.rightMargin: 10
                 spacing: 10
-
                 Text {
                     text: "SP/EP"
                     color: "white"
                     font.pixelSize: 12
                     font.family: customFont.name
                 }
-
                 Item {
                     Layout.fillWidth: true
                 }
-
-                // Apple-style Toggle Switch
                 Rectangle {
                     id: toggleSwitch
                     width: 50
                     height: 26
                     radius: height / 2
                     color: showToggle ? themeColor : "#999999"  // Green when on, Gray when off
-
                     // Smooth color transition
                     Behavior on color {
                         ColorAnimation { duration: 200 }
                     }
-
                     // Toggle handle
                     Rectangle {
                         id: toggleHandle
@@ -191,7 +119,6 @@ Rectangle {
                         color: "#FFFFFF"
                         x: showToggle ? parent.width - width - 2 : 2
                         y: 2
-
                         // Drop shadow for toggle handle
                         layer.enabled: true
                         layer.effect: DropShadow {
@@ -201,7 +128,6 @@ Rectangle {
                             samples: 9
                             color: "#30000000"
                         }
-
                         // Smooth position transition
                         Behavior on x {
                             NumberAnimation {
@@ -210,7 +136,6 @@ Rectangle {
                             }
                         }
                     }
-
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: true
@@ -254,7 +179,7 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Text {
-                        text: mainWindow.isScanningLocalFiles ? "Scanning..." : "Local Files"
+                        text: mainWindow.isScanningLocalFiles ? "Scanning..." : "Local"
                         color: "white"
                         font.pixelSize: 12
                         anchors.verticalCenter: parent.verticalCenter
@@ -319,31 +244,26 @@ Rectangle {
                     }
                 }
             }
-        }
+		}
+
         Rectangle { // Separator
             id: separatorLine
             visible: !collapsed // Use property
             Layout.fillWidth: true; height: 1; color: "#444"; Layout.topMargin: 8; Layout.bottomMargin: 5; opacity: 1.0
-        }
-        // --- ListView ---
+		}
+
+        // --- LIST OF ARTISTS/ALBUMS/PLAYLISTS ---
         Rectangle {
             id: sidebarViewWrapper
-            Layout.fillWidth: true; Layout.fillHeight: true
-            color: "transparent"
+            Layout.fillWidth: true; Layout.fillHeight: true; color: "transparent"
 
-            // --- LIST VIEW ---
             ListView {
-                id: sidebarListView
-                anchors.fill: parent
-                clip: true
-                model: localManager ? localManager.sidebarItems : null
-                currentIndex: -1
-                spacing: 2
+				id: sidebarListView; anchors.fill: parent; clip: true; currentIndex: -1
+                model: localManager ? localManager.sidebarItems : null; spacing: 2
 
                 onModelChanged: {
                     // Reset default index
                     sidebarPane.defaultAllTracksIndex = -1
-
                    // Find ALL TRACKS item
                    if (model) {
                        for (var i = 0; i < model.length; i++) {
@@ -461,6 +381,105 @@ Rectangle {
                 ScrollIndicator.vertical: ScrollIndicator { }
             }
 
-        } // End Rectangle
+		} // End Rectangle
+
+		// --- COLLAPSE BUTTON ---
+		RowLayout {
+            Layout.fillWidth: true
+            height: 40 // Provides a decent vertical click area
+			Layout.topMargin: 5 // Space above the button
+			spacing: 5
+
+            // This first spacer is always visible. It pushes the icon to the right.
+			Item { 
+				Layout.fillWidth: true
+				visible: sidebarPane.collapsed
+			}
+			
+			// Group By Button
+			Rectangle {
+				id: sourcesLabel
+				Layout.fillWidth: true
+				visible: !collapsed
+				height: 30
+				radius: 4
+				color: sourcesMouseArea.pressed ? "#33FFFFFF" :
+                  (sourcesMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
+				border.color: sourcesLabel.enabled ? "#666" : "#444"
+				border.width: 1
+
+				Row {
+					anchors.centerIn: parent
+					spacing: 8
+					Image {
+						id: sourcesIcon
+						source: sourceIcon
+						width: 16
+						height: 16
+						anchors.verticalCenter: parent.verticalCenter
+					}
+					Text {
+						id: sourceText
+						font.family: customFont.name
+						text: "Group by: " + currentGrouping
+						color: "white"
+						font.pixelSize: 12
+						anchors.verticalCenter: parent.verticalCenter
+					}
+				}
+
+				MouseArea {
+					id: sourcesMouseArea
+					anchors.fill: parent
+					hoverEnabled: true
+					cursorShape: Qt.PointingHandCursor
+					onClicked: {
+						if (currentGrouping === "ARTIST") {
+							currentGrouping = "ALBUM"
+							sourceIcon = "qrc:/icons/all_tracks_icon.png"
+						} else if (currentGrouping === "ALBUM") {
+							currentGrouping = "PLAYLIST"
+							sourceIcon = "qrc:/icons/all_tracks_icon.png"
+						} else {
+							currentGrouping = "ARTIST"
+							sourceIcon = "qrc:/icons/artist_icon.png"
+						}
+					}
+				}
+			}
+
+            // The icon and its clickable area
+            Text {
+                id: toggleIcon
+                text: sidebarPane.collapsed ? ">" : "<"
+                color: "#AAAAAA"
+                font.pixelSize: 22
+                font.bold: true
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -10 // Make click area larger than the text
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: sidebarPane.collapseToggleRequested()
+                }
+            }
+
+            // This *second* spacer is ONLY visible when collapsed.
+            // With both spacers active, the icon is pushed to the center.
+            // When expanded, this spacer is hidden, and the first spacer pushes the icon to the far right.
+            Item {
+                Layout.fillWidth: true
+                visible: sidebarPane.collapsed
+            }
+		} // --- END COLLAPSE BUTTON
+
+		SidebarSettings {
+			id: sidebarSettings
+			onSaveRequested: () => {
+				console.log("[SidebarPane.qml]: Save requested.");
+			}
+		}
+
     } // End Sidebar ColumnLayout
 }

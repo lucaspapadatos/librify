@@ -6,8 +6,6 @@ import QtQuick.Window 2.15 as QWindow
 import QtMultimedia 6.8
 import Qt5Compat.GraphicalEffects
 import com.librify 1.0
-
-// Import the new components (assuming they are in the same directory)
 import "."
 
 Window {
@@ -16,7 +14,7 @@ Window {
     width: 1250
     minimumWidth: 850
     height: 650
-    title: "R3D"
+    title: "Librify"
     readonly property color themeBatRed: "#E22134"
     readonly property color themeLottaRed: "#A22131"
     readonly property color themeGreen: "#1DB954"
@@ -634,7 +632,13 @@ Window {
                 onSidebarSelected: (instance) => {
                     console.log("[Main] Clicked " + instance);
                     mainWindow.sidebarSelected = instance
-                }
+				}
+				SidebarSettings {
+					id: sidebarSettings
+					onSaveRequested: () => {
+						console.log("[Main] on save requested");
+					}
+				}
             } // End SidebarPane Instance
 
             // --- INSTANTIATE TRACK LIST ---
