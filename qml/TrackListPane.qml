@@ -6,49 +6,55 @@ import Qt5Compat.GraphicalEffects // For DropShadow effect
 import QtQuick.Window 2.15
 import com.librify 1.0
 
-// Root item is a Rectangle that behaves like the TrackListPane
 Rectangle {
-    id: tracklistPane
+	id: tracklistPane
+    color: Qt.darker(themeColor, 3.5); border.color: Qt.darker(themeColor, 2.0)
+    border.width: 1; radius: 5; clip: true
+	
+	// --- PROPERTIES ---
     property real rowScale: 1.0
     property real titleColumnFlex: 0.4
     property real artistColumnFlex: 0.3
-    readonly property real albumColumnFlex: Math.max(0.15, 1.0 - titleColumnFlex - artistColumnFlex)
-
+	property real albumColumnFlex: Math.max(0.15, 1.0 - titleColumnFlex - artistColumnFlex)
     QtObject {
         id: currentFlexValues
         property real title: tracklistPane.titleColumnFlex
         property real artist: tracklistPane.artistColumnFlex
         property real album: tracklistPane.albumColumnFlex
     }
+    required property var trackModel
+    required property int currentTrackIndex
+    property int sortColumn: TrackListModel.None 
+    property int sortOrder: Qt.AscendingOrder
 
+	// --- CONSTANTS ---
     readonly property int splitterInteractiveWidth: 8
     readonly property int splitterVisualWidth: 1
     readonly property real baseImageSize: 55
     readonly property real baseRowHeight: 65
     readonly property real baseFontSize: 14
     readonly property real scrollSpeedMultiplier: 2.0
-
-    required property var trackModel
-    required property int currentTrackIndex
-    property int sortColumn: TrackListModel.None // Assuming TrackListModel.None is defined
-    property int sortOrder: Qt.AscendingOrder
-
+	
+	// --- SIGNALS ---
     signal trackClicked(int index, variant modelData)
     signal sortRequested(int columnEnum, int order)
 
-    color: Qt.darker(themeColor, 3.5) // Very dark version of theme for main background
-    border.color: Qt.darker(themeColor, 2.0)
-    border.width: 1
-    radius: 5
-    clip: true
-
+	// --- FONTS ---
     FontLoader {
         id: customFont
         source: "qrc:/fonts/yeezy_tstar-bold-webfont.ttf"
+	}
+
+	// --- FUNCTIONS ---	
+    function headerText(columnEnum, columnName) { 
+        if (tracklistPane.sortColumn === columnEnum) {
+            return columnName + (tracklistPane.sortOrder === Qt.AscendingOrder ? " ▲" : " ▼");
+        }
+        return columnName;
     }
 
-    // SORT Header Component Definition with ThemeColor-based CRT Design
-    Component {
+	// -- UI LAYOUT ---
+    Component { // SORT Header Component Definition with ThemeColor-based CRT Design
         id: headerComponent
         Rectangle {
             id: headerRoot
@@ -130,13 +136,6 @@ Rectangle {
                 }
             }
         }
-    }
-
-    function headerText(columnEnum, columnName) { // Unchanged
-        if (tracklistPane.sortColumn === columnEnum) {
-            return columnName + (tracklistPane.sortOrder === Qt.AscendingOrder ? " ▲" : " ▼");
-        }
-        return columnName;
     }
 
     ColumnLayout {
@@ -462,7 +461,8 @@ Rectangle {
                 }
             } // End delegate
         } // End ListView
-    }
+	}
+
     EditTrackPopup {
         id: editTrackPopup
         onSaveRequested: ({filePath,title,artist,album,imagePath}) => {

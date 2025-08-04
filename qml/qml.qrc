@@ -4,7 +4,7 @@
     <file>EditTrackPopup.qml</file>
     <file>SidebarPane.qml</file>
     <file>TrackListPane.qml</file>
-    <file>PlaybackControlsBar.qml</file>
+	<file>PlaybackControlsBar.qml</file>
 	<file>SidebarSettings.qml</file>
   </qresource>
 </RCC>

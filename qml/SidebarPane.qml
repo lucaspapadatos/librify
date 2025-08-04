@@ -4,7 +4,6 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
-// Root item is a Rectangle that behaves like the original sidebarPane
 Rectangle {
     id: sidebarPane
     color: "#AA252528"; radius: 5; border.color: "#444"; border.width: 1; clip: true
@@ -20,30 +19,23 @@ Rectangle {
 	property int defaultAllTracksIndex: -1 // Index of the ALL TRACKS item
     property real rowScale: 1.0
 
-    // --- SIGNALS ---
-    signal collapseToggleRequested
-    signal sidebarSelected(string name)
-    signal wheel
-    signal tracklistRequested(string sourceId, string sourceType)
-
     // --- CONSTANTS ---
     readonly property int topSpacing: 8
     readonly property string allTracksId: "*ALL_TRACKS*"
     readonly property real baseRowHeight: 45
     readonly property real baseFontSize: 12
     readonly property real baseImageSize: 24
+	
+    // --- SIGNALS ---
+    signal collapseToggleRequested
+    signal sidebarSelected(string name)
+    signal wheel
+    signal tracklistRequested(string sourceId, string sourceType)
 
     // --- FONTS ---
     FontLoader {
         id: customFont
         source: "qrc:/fonts/yeezy_tstar-bold-webfont.ttf"
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.ArrowCursor
-        propagateComposedEvents: true
     }
 
     // --- UI LAYOUT ---
@@ -341,11 +333,8 @@ Rectangle {
                                     sidebarListView.currentIndex = sidebarPane.defaultAllTracksIndex
                                     var allTracksItem = sidebarListView.model[sidebarPane.defaultAllTracksIndex]
                                     sidebarPane.currentSelectedId = allTracksItem.id
-
-                                    // Emit both signals for complete communication
                                     sidebarPane.sidebarSelected(allTracksItem.id)
                                     localManager.loadTracksForArtist(allTracksItem.id)
-
                                     console.log("Switched to ALL TRACKS:", allTracksItem.name)
                                 } else {
                                     // Handle when clicking the ALL TRACKS item when it's already selected
@@ -356,8 +345,6 @@ Rectangle {
                                 // Normal selection
                                 sidebarListView.currentIndex = index
                                 sidebarPane.currentSelectedId = modelData.id
-
-                                // Emit both signals for complete communication
                                 sidebarPane.sidebarSelected(modelData.id)
                                 localManager.loadTracksForArtist(modelData.id)
 

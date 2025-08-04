@@ -9,55 +9,36 @@ import com.librify 1.0
 import "."
 
 Window {
-    id: mainWindow
-    visible: true
-    width: 1250
-    minimumWidth: 850
-    height: 650
-    title: "Librify"
-    readonly property color themeBatRed: "#E22134"
-    readonly property color themeLottaRed: "#A22131"
-    readonly property color themeGreen: "#1DB954"
-    readonly property color themeAtKnight: "#a6b5ba"
-    readonly property color yzyMusic: "#c0c0cc"
+	id: mainWindow; visible: true; title: "Librify"
+	width: 1250; minimumWidth: 850; height: 650
 
-    property color themeColor: themeLottaRed
-
-    // Remove default window frame
-    flags: Qt.Window | Qt.FramelessWindowHint
-
-    // Custom font declaration
-    FontLoader {
-        id: customFont
-        source: "qrc:/fonts/yeezy_tstar-bold-webfont.ttf"
-    }
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        propagateComposedEvents: true
-    }
-
-    // --- CUSTOM WINDOW DRAG AREA ---
+    flags: Qt.Window | Qt.FramelessWindowHint // Removes default window frame
+	
+    // --- WINDOW DRAG AREA (WINDOWS/not tested in linux WMs) ---
     property point startMousePos
     property point startWindowPos
     property bool isResizing: false
     property int resizeMargin: 5
     property int resizeEdge: 0 // 0: none, 1: left, 2: right, 3: top, 4: bottom, 5: top-left, 6: top-right, 7: bottom-left, 8: bottom-right
 
-    // --- STATE PROPERTIES ---
+    // --- CONSTANTS ---
+    readonly property int collapsedSidebarWidth: 40 // should change to adapt to mainWindow width
+    readonly property real expandedSidebarRatio: 0.20
+    readonly property int titleBarHeight: 40
+    readonly property color themeBatRed: "#E22134"
+    readonly property color themeLottaRed: "#A22131"
+    readonly property color themeGreen: "#1DB954"
+    readonly property color themeAtKnight: "#a6b5ba"
+    readonly property color yzyMusic: "#c0c0cc"
+
+    // --- PROPERTIES ---
+    property color themeColor: themeLottaRed
     property bool sidebarCollapsed: false
     property int currentlyPlayingIndex: -1 // -1 is none
     property int currentSortColumn: TrackListModel.None // Default using C++ Enum (Ensure Enum accessible or use int 0)
     property int currentSortOrder: Qt.AscendingOrder   // Default to Ascending
     property string sidebarSelected: ""
     property string currentlyPlayingFilePath: ""
-
-    // --- CONSTANTS ---
-    readonly property int collapsedSidebarWidth: 40
-    readonly property real expandedSidebarRatio: 0.20
-    readonly property int titleBarHeight: 40
-
-    // --- flags ---
     property bool backendIsReady: cppPlaybackManager ? cppPlaybackManager.ready : false
     property bool initialLoadAttempted: false // loads default folder upon play button HACK
     property bool isScanningLocalFiles: false
@@ -65,6 +46,13 @@ Window {
     property bool isMaximized: false
     property bool isMinimized: false
 
+    // --- FONTS ---
+    FontLoader {
+        id: customFont
+        source: "qrc:/fonts/yeezy_tstar-bold-webfont.ttf"
+	}
+	
+	// --- FUNCTIONS ---
     // --- media player handlers ---
     function playTrackAtIndex(index) {
         if (index >= 0 && index < cppTrackModel.tracks.length) {
@@ -92,7 +80,6 @@ Window {
                 mainWindow.playAfterNextScan = true; // Set flag: user clicked play while scan was already ongoing
                 return;
             }
-
             // If not currently scanning and no tracks:
             if (!initialLoadAttempted) { // This is the first time we've encountered no tracks and need to load defaults
                 if (cppLocalManager && typeof cppLocalManager.scanDefaultMusicFolder === "function") {
@@ -110,10 +97,8 @@ Window {
             }
             return; // Exit because either scan started, or determined no tracks after a past attempt
         }
-
         // --- If tracks ARE available ---
         mainWindow.playAfterNextScan = false; // Clear flag if we are proceeding to play immediately
-
         if (trackPlayer.playbackState === MediaPlayer.PausedState && currentlyPlayingIndex !== -1) {
             trackPlayer.play();
         } else if (currentlyPlayingIndex !== -1 && cppTrackModel.tracks.length > currentlyPlayingIndex) {
@@ -178,10 +163,9 @@ Window {
     AudioOutput { id: audioOutput }
     MediaPlayer { id: trackPlayer
         audioOutput: audioOutput
-        // Event handlers remain here as they manage app-level state (currentlyPlayingIndex)
         onErrorOccurred: {
-            console.error("MediaPlayer Error:", trackPlayer.error, trackPlayer.errorString);
-            currentlyPlayingIndex = -1; // Reset state on error
+            console.error("[Main] MediaPlayer Error:", trackPlayer.error, trackPlayer.errorString);
+            currentlyPlayingIndex = -1;
         }
         onMediaStatusChanged: {
             if (trackPlayer.mediaStatus === MediaPlayer.EndOfMedia) {
@@ -191,27 +175,26 @@ Window {
                 console.log("[Main] Media loaded, duration:", trackPlayer.duration);
             } else if (trackPlayer.mediaStatus === MediaPlayer.InvalidMedia) {
                  console.error("[Main] Invalid media:", trackPlayer.source);
-                 currentlyPlayingIndex = -1; // Reset if media is bad
+                 currentlyPlayingIndex = -1; // Reset if media is invalid
             }
         }
         onPlaybackStateChanged: {
             if (trackPlayer.mediaStatus === MediaPlayer.EndOfMedia) {
                 console.log("[Main] Track finished (EndOfMedia). **Auto-play next is temporarily disabled for debugging.**");
-                // mainWindow.playNextTrack(); // <<<< TEMPORARILY COMMENT THIS OUT
+                // mainWindow.playNextTrack(); // <<<< TEMPORARILY COMMENTING OUT
             } else if (trackPlayer.mediaStatus === MediaPlayer.LoadedMedia) {
                 console.log("[Main] Media loaded, duration:", trackPlayer.duration);
             } else if (trackPlayer.mediaStatus === MediaPlayer.InvalidMedia) {
                  console.error("[Main] Invalid media:", trackPlayer.source);
                  currentlyPlayingIndex = -1;
             }
-            // Add more detailed logging for other statuses if needed
             else {
                 console.log("[Main] Media status changed to:", trackPlayer.mediaStatus);
             }
         }
-    }
+	}
 
-    // --- COMPONENT COMPLETION & SETUP ---
+	// -- Initialize media player to playback manager
     Component.onCompleted: {
         console.log("[Main] Window mainWindow Completed.")
         if (cppPlaybackManager && typeof cppPlaybackManager.setMediaPlayer === "function") {
@@ -221,9 +204,9 @@ Window {
         }
     }
 
-    // --- TITLE BAR MULTIPLATFORM ---
+    // --- TITLE BAR (eventually move to dedicated qml file) ---
     Rectangle {
-        id: customTitleBar
+		id: customTitleBar
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
@@ -235,13 +218,12 @@ Window {
             GradientStop { position: 1.0; color: "#FF202025" }
         }
         border.color: "#111"; border.width: 1
-        // App Logo (Left-aligned)
+        // App Logo
         Row {
             anchors.left: parent.left
             anchors.leftMargin: 10
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8
-
             Image {
                 id: titleIcon
                 width: 30
@@ -249,7 +231,6 @@ Window {
                 source: "qrc:/icons/pngegg.png"
                 fillMode: Image.PreserveAspectFit
             }
-
             Text {
                 id: titleText
                 verticalAlignment: Text.AlignVCenter
@@ -260,8 +241,7 @@ Window {
                 color: "#ffffff"
             }
         }
-
-        // Search bar (centred default)
+        // Search Bar
         Item {
             id: searchContainer
             anchors.centerIn: parent
@@ -278,13 +258,12 @@ Window {
                     radius: 15
                     border.color: "#555"
                     border.width: 1
-                }
+				}
+				// TODO:
                 //onTextChanged: cppTrackModel.setFilterString(text)
             }
         }
-
-
-        // Window Controls (Right-aligned)
+        // Window Controls (min/max/close)
         Row {
             id: windowControls
             anchors.right: parent.right
@@ -292,7 +271,7 @@ Window {
             spacing: 15
             rightPadding: 15
             topPadding: 5
-            Image { // MIN Button
+            Image {
                 id: minButton
                 width: 36
                 height: 32
@@ -322,7 +301,7 @@ Window {
                     Behavior on opacity { NumberAnimation { duration: 100 } }
                 }
             }
-            Image { // MAX Button
+            Image {
                 id: maxButton
                 width: 36
                 height: 32
@@ -353,7 +332,7 @@ Window {
                     Behavior on opacity { NumberAnimation { duration: 100 } }
                 }
             }
-            Image { // X Button
+            Image {
                 id: closeButton
                 width: 32
                 height: 35
@@ -381,7 +360,7 @@ Window {
                 }
             }
         }
-        // Allows window dragging
+        // Allows window dragging (windows)
         DragHandler {
             id: titleBarDragHandler
             target: null
@@ -392,9 +371,7 @@ Window {
             }
         }
     }
-
-    // --- BACKGROUND ---
-    Rectangle {
+    Rectangle { // top bar background
         anchors.fill: parent;
         gradient: Gradient {
             orientation: Gradient.Vertical;

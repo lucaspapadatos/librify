@@ -2,15 +2,11 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import QtQuick.Dialogs 6.3  // For FileDialog
+import QtQuick.Dialogs 6.3  
 
 Popup {
-    id: root
-    modal: true
-    anchors.centerIn: Overlay.overlay
-    width: 400
-    height: 500
-    padding: 10
+	id: root
+	modal: true; anchors.centerIn: Overlay.overlay; width: 400; height: 500; padding: 10
 
     property var trackData: ({})
 
@@ -28,9 +24,9 @@ Popup {
         root.open();
     }
 
+	// --- UI LAYOUT ---
     ColumnLayout {
-        anchors.fill: parent
-        spacing: 10
+        anchors.fill: parent; spacing: 10
 
         TextField {
             id: titleField
@@ -71,6 +67,7 @@ Popup {
             }
         }
 
+		// --- Action Buttons ---
         RowLayout {
             Button {
                 text: "Save"

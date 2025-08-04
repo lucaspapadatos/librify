@@ -1,22 +1,15 @@
+// SidebarSettings.qml
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
 Popup {
     id: root
+	modal: true; anchors.centerIn: Overlay.overlay; width: 350; height: 200; padding: 15
+	background: Rectangle { color: "#2E2E2E"; radius: 5; border.color: "#444"; border.width: 1 }
 
-    modal: true; anchors.centerIn: Overlay.overlay; width: 350; height: 200; padding: 15
-    background: Rectangle {
-        color: "#2E2E2E"
-        radius: 5
-        border.color: "#444"
-        border.width: 1
-    }
-
-    // --- SIGNALS ---
     signal saveRequested(bool crossfadeEnabled)
 
-    // --- FUNCTIONS ---
     function openSettings() {
         // crossfadeCheckbox.checked = cppConfigManager.getCrossfade();
         root.open()
@@ -33,7 +26,6 @@ Popup {
             Layout.alignment: Qt.AlignHCenter
         }
 
-		// --- Settings Content ---
         RowLayout {
             Layout.fillWidth: true
             Label {
@@ -44,7 +36,7 @@ Popup {
             Item { Layout.fillWidth: true } // Spacer
             CheckBox {
                 id: crossfadeCheckbox
-                // In a real app, you would bind `checked` to your settings model
+                // todo: bind `checked` to settings cpp model
             }
         }
 
