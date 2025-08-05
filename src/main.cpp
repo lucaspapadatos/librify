@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     }
 
     // --- Load fonts ---
-    int fontId = QFontDatabase::addApplicationFont(":/fonts/OpenSans-Bold.ttf");
+    int fontId = QFontDatabase::addApplicationFont(":/fonts/Inter/static/Inter_18pt-SemiBold.ttf");
     QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
     if (!fontFamilies.isEmpty()) {
         QFont defaultFont(fontFamilies.first());

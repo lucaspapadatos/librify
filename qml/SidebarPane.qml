@@ -42,104 +42,6 @@ Rectangle {
     ColumnLayout {
         id: sidebarColumn
         anchors.fill: parent; anchors.margins: topSpacing; spacing: 5
-		
-		Rectangle {
-            id: settingsButton
-            Layout.fillWidth: true; height: 30; visible: !collapsed
-            radius: 4
-            color: settingsMouseArea.pressed ? "#33FFFFFF" :
-                  (settingsMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
-            Row {
-                anchors.centerIn: parent; spacing: 8
-                Text {
-                    font.family: customFont.name
-                    text: "Settings"
-                    color: "white"
-                    font.pixelSize: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
-            MouseArea {
-                id: settingsMouseArea
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-					console.log("[SidebarPane] Settings button clicked")
-					sidebarSettings.openSettings()
-                }
-            }
-        }
-
-        Rectangle {
-            id: toggleContainer
-            Layout.fillWidth: true
-            height: 30
-            radius: 4
-            visible: !collapsed && currentGrouping === "ALBUM"
-            color: "transparent"
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                spacing: 10
-                Text {
-                    text: "SP/EP"
-                    color: "white"
-                    font.pixelSize: 12
-                    font.family: customFont.name
-                }
-                Item {
-                    Layout.fillWidth: true
-                }
-                Rectangle {
-                    id: toggleSwitch
-                    width: 50
-                    height: 26
-                    radius: height / 2
-                    color: showToggle ? themeColor : "#999999"  // Green when on, Gray when off
-                    // Smooth color transition
-                    Behavior on color {
-                        ColorAnimation { duration: 200 }
-                    }
-                    // Toggle handle
-                    Rectangle {
-                        id: toggleHandle
-                        width: 22
-                        height: 22
-                        radius: width / 2
-                        color: "#FFFFFF"
-                        x: showToggle ? parent.width - width - 2 : 2
-                        y: 2
-                        // Drop shadow for toggle handle
-                        layer.enabled: true
-                        layer.effect: DropShadow {
-                            horizontalOffset: 0
-                            verticalOffset: 1
-                            radius: 4.0
-                            samples: 9
-                            color: "#30000000"
-                        }
-                        // Smooth position transition
-                        Behavior on x {
-                            NumberAnimation {
-                                duration: 200
-                                easing.type: Easing.InOutQuad
-                            }
-                        }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            showToggle = !showToggle
-                            console.log("toggled SP/EP:", showToggle)
-                        }
-                    }
-                }
-            }
-        }
 
         // --- ACTION BUTTONS ---
         RowLayout {
@@ -152,11 +54,9 @@ Rectangle {
                 id: loadLocalButton
                 Layout.fillWidth: true
                 height: 30
-                radius: 4
+                radius: 20
                 color: mouseArea.pressed ? "#33FFFFFF" :
                       (mouseArea.containsMouse ? "#22FFFFFF" : "transparent")
-                border.color: "#666"
-                border.width: 1
                 opacity: mainWindow.isScanningLocalFiles ? 0.5 : 1.0
 
                 Row {
@@ -168,12 +68,6 @@ Rectangle {
                         source: "qrc:/icons/all_tracks_icon.png"
                         width: 16
                         height: 16
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Text {
-                        text: mainWindow.isScanningLocalFiles ? "Scanning..." : "Local"
-                        color: "white"
-                        font.pixelSize: 12
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -197,14 +91,11 @@ Rectangle {
                 id: getSpotifyPlaylistsButton
                 Layout.fillWidth: true
                 height: 30
-                radius: 4
+                radius: 20
                 color: spotifyMouseArea.pressed ? "#33FFFFFF" :
                       (spotifyMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
-                border.color: enabled ? "#666" : "#444"
-                border.width: 1
                 enabled: cppSpotifyManager.isAuthenticated && !mainWindow.isScanningLocalFiles
                 opacity: enabled ? 1.0 : 0.5
-
                 Row {
                     anchors.centerIn: parent
                     spacing: 8
@@ -216,14 +107,7 @@ Rectangle {
                         height: 16
                         anchors.verticalCenter: parent.verticalCenter
                     }
-                    Text {
-                        text: "Spotify"
-                        color: "white"
-                        font.pixelSize: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
                 }
-
                 MouseArea {
                     id: spotifyMouseArea
                     anchors.fill: parent
@@ -235,13 +119,35 @@ Rectangle {
                         }
                     }
                 }
-            }
-		}
+			}
 
-        Rectangle { // Separator
-            id: separatorLine
-            visible: !collapsed // Use property
-            Layout.fillWidth: true; height: 1; color: "#444"; Layout.topMargin: 8; Layout.bottomMargin: 5; opacity: 1.0
+			// Settings Button
+			Rectangle {
+				id: settingsButton
+				Layout.fillWidth: true; height: 30; visible: !collapsed; radius: 20
+				color: settingsMouseArea.pressed ? "#33FFFFFF" :
+                  (settingsMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
+				Row {
+					anchors.centerIn: parent; spacing: 18
+					Image {
+                        smooth: true
+                        source: "qrc:/icons/cogwheel.png"
+                        width: 16
+                        height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+				}
+				MouseArea {
+					id: settingsMouseArea
+					anchors.fill: parent
+					hoverEnabled: true
+					cursorShape: Qt.PointingHandCursor
+					onClicked: {
+						console.log("[SidebarPane] Settings button clicked")
+						sidebarSettings.openSettings()
+					}
+				}
+			}
 		}
 
         // --- LIST OF ARTISTS/ALBUMS/PLAYLISTS ---

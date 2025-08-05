@@ -40,10 +40,9 @@ Popup {
                 anchors.leftMargin: 15
                 anchors.rightMargin: 15
                 Text {
-                    text: "Include Singles with Albums"
+                    text: "INCLUDE SINGLES WITH ALBUMS"
                     color: "white"
                     font.pixelSize: 12
-                    font.family: customFont.name
                     Layout.alignment: Qt.AlignVCenter
                 }
                 Item { Layout.fillWidth: true } // Spacer
@@ -63,7 +62,6 @@ Popup {
                     text: "Enable Crossfade"
                     color: "white"
                     font.pixelSize: 12
-                    font.family: customFont.name
                     Layout.alignment: Qt.AlignVCenter
                 }
                 Item { Layout.fillWidth: true } // Spacer
@@ -83,7 +81,6 @@ Popup {
                     text: "High Quality"
                     color: "white"
                     font.pixelSize: 12
-                    font.family: customFont.name
                     Layout.alignment: Qt.AlignVCenter
                 }
                 Item { Layout.fillWidth: true } // Spacer
