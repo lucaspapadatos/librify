@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     }
 
     // --- Load fonts ---
-    int fontId = QFontDatabase::addApplicationFont(":/fonts/yeezy_tstar-bold-webfont.ttf");
+    int fontId = QFontDatabase::addApplicationFont(":/fonts/OpenSans-Bold.ttf");
     QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
     if (!fontFamilies.isEmpty()) {
         QFont defaultFont(fontFamilies.first());

@@ -6,6 +6,7 @@
     <file>TrackListPane.qml</file>
 	<file>PlaybackControlsBar.qml</file>
 	<file>SidebarSettings.qml</file>
+	<file>ToggleSwitch.qml</file>
   </qresource>
 </RCC>
 
