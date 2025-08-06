@@ -56,6 +56,11 @@ LocalMusicManager::~LocalMusicManager() {
     qDebug() << "[LocalMusicManager] Instance destroyed.";
 }
 
+QVariantList LocalMusicManager::sidebarItems() const { return m_sidebarItems; }
+
+//=============================================================================
+// FUNCTION: Rewrites the tags of a given mp3 file 
+//=============================================================================
 void LocalMusicManager::writeTrackTags(const QString &filePath, const QString &title,
                                       const QString &artist, const QString &album,
                                       const QString &imagePath) {
@@ -164,13 +169,10 @@ void LocalMusicManager::writeTrackTags(const QString &filePath, const QString &t
     }
 }
 
-QVariantList LocalMusicManager::sidebarItems() const { return m_sidebarItems; }
-
 //=============================================================================
-// Slot to scan defailt folder and trigger subfolder scan
+// SLOT: Scan default folder and trigger subfolder scan
 //=============================================================================
-void LocalMusicManager::scanDefaultMusicFolder()
-{
+void LocalMusicManager::scanDefaultMusicFolder() {
     qDebug() << "[LocalMusicManager] scanDefaultMusicFolder() slot called.";
     if (m_scanWatcher.isRunning()) {
         qWarning() << "[LocalMusicManager] A scan is already in progress. Please wait.";
@@ -188,8 +190,7 @@ void LocalMusicManager::scanDefaultMusicFolder()
     qDebug() << "[LocalMusicManager] Starting scan of default music folder:" << defaultMusicPath;
     startScanProcess(defaultMusicPath); // Call the common helper
 }
-void LocalMusicManager::startScanProcess(const QString& folderPath)
-{
+void LocalMusicManager::startScanProcess(const QString& folderPath) {
     qDebug() << "[LocalMusicManager] Starting scan process for folder:" << folderPath;
     m_selectedParentFolder = folderPath; // Keep if other parts of your class rely on this
 
@@ -211,10 +212,9 @@ void LocalMusicManager::startScanProcess(const QString& folderPath)
 }
 
 //=============================================================================
-// Slot to select parent folder and trigger subfolder scan
+// SLOT: Selects parent folder and trigger subfolder scan
 //=============================================================================
-void LocalMusicManager::selectAndScanParentFolderForArtists()
-{
+void LocalMusicManager::selectAndScanParentFolderForArtists() {
     qDebug() << "[LocalMusicManager] selectAndScanParentFolderForArtists() slot called.";
     // Cancel any previous scan still running
     if (m_scanWatcher.isRunning()) {
@@ -230,14 +230,15 @@ void LocalMusicManager::selectAndScanParentFolderForArtists()
 
     if (!dirPath.isEmpty()) {
         qDebug() << "[LocalMusicManager] Selected parent folder for scan:" << dirPath;
-        startScanProcess(dirPath); // call helper
+        startScanProcess(dirPath); 
     } else {
         qDebug() << "[LocalMusicManager] No parent folder selected.";
-        // Optionally clear lists if needed
     }
 }
 
-// Helper function to split artist names
+//=============================================================================
+// HELPER: Split artist names
+//=============================================================================
 QStringList LocalMusicManager::splitArtistName(const QString& artistName) {
     if (artistName.isEmpty()) {
         return QStringList() << "Unknown Artist";
@@ -275,135 +276,186 @@ QStringList LocalMusicManager::splitArtistName(const QString& artistName) {
     return trimmedArtists;
 }
 
-// --- Background Task Implementation ---
+//=============================================================================
+// FUNCTION: Background Task Implementation
+//=============================================================================
 LocalMusicManager::ScanResults LocalMusicManager::performBackgroundScan(QString parentFolderPath) {
     qDebug() << "[BG Scan] Starting background scan for:" << parentFolderPath << "on thread:" << QThread::currentThreadId();
-    ScanResults results; // Struct to hold results
+    ScanResults results;
     QStringList allMp3Files;
 
     // 1. Find all files (Recursive)
-    // TODO: Add cancellation check inside recursiveScan if desired
     recursiveScan(parentFolderPath, allMp3Files);
     qDebug() << "[BG Scan] Found" << allMp3Files.count() << "MP3 file paths.";
-
     if (allMp3Files.isEmpty()) {
         qWarning() << "[BG Scan] No MP3 files found.";
-        return results; // Return empty results
+        return results; 
     }
 
     // 2. Read tags and populate results
     results.cachedTracks.reserve(allMp3Files.count());
     int totalFiles = allMp3Files.count();
-    // emit loadingProgress(0, totalFiles); // CANNOT emit directly from bg thread
-
     for(int i = 0; i < totalFiles; ++i) {
-        // TODO: Check for cancellation request here (e.g., m_scanWatcher.future().isCanceled())
-        // if (m_scanWatcher.future().isCanceled()) { qDebug() << "[BG Scan] Scan cancelled."; return results; }
-
         const QString& filePath = allMp3Files.at(i);
-        QVariantMap trackData = readId3Tags(filePath); // Read full tags
-
+        QVariantMap trackData = readId3Tags(filePath);
         if (!trackData.value("filePath").toString().isEmpty()) {
-            results.cachedTracks.append(trackData); // Add to results struct
+            results.cachedTracks.append(trackData);
+			// Process Artists
             QString artistValue = trackData.value("artist", "Unknown Artist").toString();
             QStringList individualArtists = splitArtistName(artistValue);
-
             for (const QString& artist : individualArtists) {
                 if (!artist.isEmpty()) {
-                    results.uniqueArtists.insert(artist); // Add each individual artist to the set
+                    results.uniqueArtists.insert(artist); 
                 }
             }
-        } // else { qWarning() << "[BG Scan] Skipping file as readId3Tags returned invalid map:" << filePath; }
-
-    } // End loop
-
-    qDebug() << "[BG Scan] Finished reading tags. Found" << results.cachedTracks.count() << "tracks and" << results.uniqueArtists.count() << "artists.";
-    return results; // Return the struct containing results
+			// Process Albums
+            QString albumValue = trackData.value("album", "Unknown Album").toString();
+            if (albumValue != "Unknown Album") {
+                results.uniqueAlbums.insert(albumValue);
+                results.albumTrackCounts[albumValue]++; 
+            }
+        } 
+    } 
+    qDebug() << "[BG Scan] Finished reading tags. Found" << results.cachedTracks.count() 
+			 << "tracks and" << results.uniqueArtists.count() << "artists, and"
+			 << results.uniqueAlbums.count() << "albums.";
+    return results;
 }
 
-// --- Slot: Handles results from background thread ---
+//=============================================================================
+// SLOT: Handles results from background thread
+//=============================================================================
 void LocalMusicManager::handleScanFinished() {
-    qDebug() << "[LocalMusicManager] >>> handleScanFinished SLOT ENTERED on thread:" << QThread::currentThreadId();
+	// 1. Start scan
+    qDebug() << "[LocalMusicManager] >>> handleScanFinished SLOT STARTING on thread:" << QThread::currentThreadId();
     emit scanStateChanged(false);
-
     if (m_scanWatcher.isCanceled()) {
         qDebug() << "[LocalMusicManager] Scan was cancelled.";
         emit loadingProgress(0, 0);
         return;
     }
-
     ScanResults results = m_scanWatcher.result();
     qDebug() << "[LocalMusicManager] Received scan results. Tracks:" << results.cachedTracks.count();
 
-    // --- Update Cache and Artist Index Hash (Main Thread) ---
-    m_cachedFullTrackData = results.cachedTracks; // Assign results
+    // 2. Update caches and index hashes
+    m_cachedFullTrackData = results.cachedTracks; 
+	m_albumTrackCounts = results.albumTrackCounts;
     m_artistIndexHash.clear();
+    m_albumIndexHash.clear();
     for(int i = 0; i < m_cachedFullTrackData.size(); ++i) {
-        QString artistValue = m_cachedFullTrackData.at(i).value("artist", "Unknown Artist").toString();
+		const QVariantMap& track = m_cachedFullTrackData.at(i);
+		// Artist Indexing
+        QString artistValue = track.value("artist", "Unknown Artist").toString();
         QStringList individualArtists = splitArtistName(artistValue);
-
         for (const QString& artist : individualArtists) {
             if (!artist.isEmpty()) {
                 m_artistIndexHash.insert(artist, i);
             }
         }
+		// Album Indexing
+        QString albumValue = track.value("album", "Unknown Album").toString();
+        if (albumValue != "Unknown Album") {
+            m_albumIndexHash.insert(albumValue, i);
+        }
     }
     qDebug() << "[LocalMusicManager] Caches updated.";
 
-    // --- Build Sidebar List (Main Thread) ---
-    QVariantList newSidebarItems;
+    // 3. Build Sidebar List based on current grouping
+	rebuildSidebarModel();
 
-    // 1. Add "All Tracks" item
-    if (!m_cachedFullTrackData.isEmpty()) {
-        QVariantMap allTracksMap;
-        allTracksMap["type"] = "local_all";
-        allTracksMap["name"] = "All Tracks";
-        allTracksMap["id"] = ALL_TRACKS_IDENTIFIER; // Use defined constant
-        allTracksMap["iconSource"] = "qrc:/icons/all_tracks_icon.png"; // Assign icon path
-        allTracksMap["count"] = m_cachedFullTrackData.size(); // Add count for display
-        newSidebarItems.append(allTracksMap);
-    }
-
-    // 2. Convert unique artist set to sorted list
-    QStringList sortedArtists = results.uniqueArtists.values();
-    sortedArtists.sort(Qt::CaseInsensitive);
-
-    for(const QString& artistName : sortedArtists) { // Add artists
-        QVariantMap artistMap;
-        artistMap["type"] = "local_artist";
-        artistMap["name"] = artistName;
-        artistMap["id"] = artistName; // Use name as ID for local artists
-        artistMap["iconSource"] = "qrc:/icons/artist_icon.png"; // Assign icon path
-        int trackCount = m_artistIndexHash.count(artistName);
-        artistMap["count"] = trackCount;
-        newSidebarItems.append(artistMap);
-    }
-    qDebug() << "[LocalMusicManager] New sidebar list built. Count:" << newSidebarItems.count();
-    // --------------------------------------
-
-    // --- Update Sidebar Model and Emit Signals (Main Thread) ---
-    if (m_sidebarItems != newSidebarItems) {
-        m_sidebarItems = newSidebarItems;
-        qDebug() << "[LocalMusicManager] Emitting sidebarItemsChanged()."; // Log before emit
-        emit sidebarItemsChanged();
-    }
-
-    // --- Convert cache and Emit Tracks ---
+    // 4. emit full track list
     QVariantList tracksForSignal;
     tracksForSignal.reserve(m_cachedFullTrackData.size());
     for (const QVariantMap& trackMap : m_cachedFullTrackData) { tracksForSignal.append(trackMap); }
-    qDebug() << "[LocalMusicManager] Emitting tracksReadyForDisplay(). Count:" << tracksForSignal.count();
+    qDebug() << "[LocalMusicManager] Emitting tracksReadyForDisplay()";
     emit tracksReadyForDisplay(tracksForSignal);
     emit loadingProgress(m_cachedFullTrackData.count(), m_cachedFullTrackData.count());
-
     qDebug() << "[LocalMusicManager] <<< handleScanFinished SLOT EXITED.";
 }
 
 //=============================================================================
-// Helper: Recursively finds all MP3 file paths
+// SLOT: Changes grouping and rebuilds the sidebar model
 //=============================================================================
-void LocalMusicManager::recursiveScan(const QString& folderPath, QStringList& foundMp3Files)
-{
+void LocalMusicManager::setGrouping(const QString& grouping) {
+    if (m_currentGrouping == grouping) return; 
+    qDebug() << "[LocalMusicManager] Grouping changed to:" << grouping;
+    m_currentGrouping = grouping;
+    rebuildSidebarModel();
+}
+
+//=============================================================================
+// HELPER: Builds the sidebar list based on current grouping
+//=============================================================================
+void LocalMusicManager::rebuildSidebarModel() {
+	QVariantList newSidebarItems;
+	// 1. Add "All Tracks" item (always present)
+    if (!m_cachedFullTrackData.isEmpty()) {
+        QVariantMap allTracksMap;
+        allTracksMap["type"] = "local_all";
+        allTracksMap["name"] = "All Tracks";
+        allTracksMap["id"] = ALL_TRACKS_IDENTIFIER;
+        allTracksMap["iconSource"] = "qrc:/icons/all_tracks_icon.png";
+        allTracksMap["count"] = m_cachedFullTrackData.size();
+        newSidebarItems.append(allTracksMap);
+    }
+
+    // 2. Add items based on current grouping mode
+	if (m_currentGrouping == "ARTISTS") {
+		QStringList sortedArtists = m_artistIndexHash.uniqueKeys();
+		sortedArtists.sort(Qt::CaseInsensitive);
+		for(const QString& artistName : sortedArtists) {
+			QVariantMap artistMap;
+			artistMap["type"] = "local_artist";
+			artistMap["name"] = artistName;
+			artistMap["id"] = artistName; 
+			artistMap["iconSource"] = "qrc:/icons/artist_icon.png";
+			artistMap["count"] = m_artistIndexHash.count(artistName);
+			newSidebarItems.append(artistMap);
+		}
+	} else if (m_currentGrouping == "ALBUMS") {
+        QStringList sortedAlbums = m_albumIndexHash.uniqueKeys();
+        sortedAlbums.sort(Qt::CaseInsensitive);
+        for (const QString& albumName : sortedAlbums) {
+            int trackCount = m_albumTrackCounts.value(albumName, 0);
+            if (m_currentGrouping == "ALBUMS" && trackCount <= 1) {
+                continue;
+            }
+            QVariantMap albumMap;
+            albumMap["type"] = "local_album";
+            albumMap["name"] = albumName;
+            albumMap["id"] = albumName;
+            albumMap["iconSource"] = "qrc:/icons/album_icon.png";
+            albumMap["count"] = trackCount;
+			// Album: Get cover art
+			if (m_albumIndexHash.contains(albumName)) {
+				int firstTrackIndex = m_albumIndexHash.value(albumName);
+				if (firstTrackIndex >= 0 && firstTrackIndex < m_cachedFullTrackData.size()) {
+                    const QVariantMap& trackData = m_cachedFullTrackData.at(firstTrackIndex);
+                    const QString imageBase64 = trackData.value("imageBase64").toString();
+                    if (!imageBase64.isEmpty()) {
+                        const QString mimeType = trackData.value("imageMimeType", "image/jpeg").toString();
+                        // Format the string as a data URI for QML's Image source
+                        albumMap["iconSource"] = QString("data:%1;base64,%2").arg(mimeType, imageBase64);
+                    }
+                }
+			}
+            newSidebarItems.append(albumMap);
+        }
+    }
+	qDebug() << "[LocalMusicManager] New sidebar list built for grouping" 
+		     << m_currentGrouping << ". Count:" << newSidebarItems.count();
+
+	// 3. Emit sidebarItemsChanged
+    if (m_sidebarItems != newSidebarItems) {
+        m_sidebarItems = newSidebarItems;
+        emit sidebarItemsChanged();
+    }
+}
+
+//=============================================================================
+// HELPER: Recursively finds all MP3 file paths
+//=============================================================================
+void LocalMusicManager::recursiveScan(const QString& folderPath, QStringList& foundMp3Files) {
     QDir directory(folderPath);
     if (!directory.exists()) return;
 
@@ -422,48 +474,52 @@ void LocalMusicManager::recursiveScan(const QString& folderPath, QStringList& fo
     }
 }
 
-// --- Slot: Loads tracks for artist (uses cache - stays on Main Thread) ---
-void LocalMusicManager::loadTracksForArtist(const QString& artistOrIdentifier)
-{
-    qDebug() << "[LocalMusicManager] Request received to load tracks for:" << artistOrIdentifier;
-    if (m_selectedParentFolder.isEmpty()) { /* ... error handling ... */ emit tracksReadyForDisplay(QVariantList()); return; }
-
-    QVariantList tracksToShow;
-    if (artistOrIdentifier == ALL_TRACKS_IDENTIFIER) {
-        qDebug() << "[loadTracksForArtist] Loading ALL tracks from cache.";
-        // *** CONVERT m_cachedFullTrackData to QVariantList for assignment ***
-        tracksToShow.reserve(m_cachedFullTrackData.size());
-        for (const QVariantMap& trackMap : m_cachedFullTrackData) {
-            tracksToShow.append(trackMap); // Append each map (implicitly converts to QVariant)
-        }
-        // ********************************************************************
-        // If sorting is needed later, sort tracksToShow here
-    } else {
-        // --- Load Tracks for Specific Artist ---
-        qDebug() << "[loadTracksForArtist] Filtering cache for artist:" << artistOrIdentifier;
-        if (m_artistIndexHash.contains(artistOrIdentifier)) {
-            QList<int> indices = m_artistIndexHash.values(artistOrIdentifier);
-            tracksToShow.reserve(indices.size());
-            qDebug() << "[loadTracksForArtist] Found" << indices.size() << "indices for artist.";
-            for (int index : indices) {
-                if (index >= 0 && index < m_cachedFullTrackData.size()) {
-                    // Get the QVariantMap from cache and append it (implicitly converts to QVariant)
-                    tracksToShow.append(m_cachedFullTrackData.at(index)); // <<< Appending QVariantMap works here
-                } else { /* Warning */ }
-            }
-            // If sorting is needed later, sort tracksToShow here
-        }
+//=============================================================================
+// SLOT: Loads tracks for a given identifier (artist/album)
+//=============================================================================
+void LocalMusicManager::loadTracksFor(const QString& identifier, const QString& type) {
+	qDebug() << "[LocalMusicManager] Request received to load tracks for:" << identifier << "of type:" << type;
+    if (m_selectedParentFolder.isEmpty()) {
+        emit tracksReadyForDisplay(QVariantList());
+        return;
     }
 
-    qDebug() << "[loadTracksForArtist] Emitting" << tracksToShow.count() << "tracks for display.";
+    QVariantList tracksToShow;
+	QList<int> indices;
+
+    if (identifier == ALL_TRACKS_IDENTIFIER || type == "local_all") {
+        qDebug() << "[loadTracksFor] Loading ALL tracks from cache.";
+        // *** CONVERT m_cachedFullTrackData to QVariantList for assignment ***
+        //tracksToShow.reserve(m_cachedFullTrackData.size());
+        for (const QVariantMap& trackMap : m_cachedFullTrackData) {
+            tracksToShow.append(trackMap); 
+        }
+    } else if (type == "local_artist") {
+        qDebug() << "[loadTracksFor" << identifier << "] Filtering cache for artist:" << identifier;
+        indices = m_artistIndexHash.values(identifier);
+    } else if (type == "local_album") {
+		qDebug() << "[loadTracksFor" << identifier << "] Filtering cache for album:" << identifier;
+		indices = m_albumIndexHash.values(identifier);
+	}
+
+	if (!indices.isEmpty()) {
+        tracksToShow.reserve(indices.size());
+        qDebug() << "[loadTracksFor] Found" << indices.size() << "indices.";
+        for (int index : indices) {
+            if (index >= 0 && index < m_cachedFullTrackData.size()) {
+                tracksToShow.append(m_cachedFullTrackData.at(index));
+            }
+        }
+    }
+	
+    qDebug() << "[loadTracksFor] Emitting" << tracksToShow.count() << "tracks for display.";
     emit tracksReadyForDisplay(tracksToShow);
 }
 
 //=============================================================================
-// Reads ID3 tags (including image)
+// FUNCTION: Reads ID3 tags
 //=============================================================================
-QVariantMap LocalMusicManager::readId3Tags(const QString& filePath)
-{
+QVariantMap LocalMusicManager::readId3Tags(const QString& filePath) {
     QVariantMap tagsMap;
     QString imageBase64 = "";
     QString imageMimeType = "";

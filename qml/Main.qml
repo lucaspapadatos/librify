@@ -10,7 +10,7 @@ import "."
 
 Window {
 	id: mainWindow; visible: true; title: "Librify"
-	width: 1250; minimumWidth: 850; height: 650
+	width: 1250; minimumWidth: 540; height: 980; minimumHeight: 960
 
     flags: Qt.Window | Qt.FramelessWindowHint // Removes default window frame
 	
@@ -22,8 +22,8 @@ Window {
     property int resizeEdge: 0 // 0: none, 1: left, 2: right, 3: top, 4: bottom, 5: top-left, 6: top-right, 7: bottom-left, 8: bottom-right
 
     // --- CONSTANTS ---
-    readonly property int collapsedSidebarWidth: 40 // should change to adapt to mainWindow width
-    readonly property real expandedSidebarRatio: 0.20
+    readonly property int collapsedSidebarWidth: mainWindow.width * 0.1
+    readonly property real expandedSidebarRatio: 0.22
     readonly property int titleBarHeight: 40
     readonly property color themeBatRed: "#E22134"
     readonly property color themeLottaRed: "#A22131"
@@ -32,7 +32,7 @@ Window {
     readonly property color yzyMusic: "#c0c0cc"
 
     // --- PROPERTIES ---
-    property color themeColor: themeLottaRed
+    property color themeColor: yzyMusic
     property bool sidebarCollapsed: false
     property int currentlyPlayingIndex: -1 // -1 is none
     property int currentSortColumn: TrackListModel.None // Default using C++ Enum (Ensure Enum accessible or use int 0)
@@ -213,9 +213,9 @@ Window {
         height: titleBarHeight
         z: 10
         gradient: Gradient {
-            GradientStop { position: 0.0; color: "#FF404045" }
-            GradientStop { position: 0.5; color: "#FF303035" }
-            GradientStop { position: 1.0; color: "#FF202025" }
+            GradientStop { position: 0.0; color: Qt.darker(themeColor, 3.0) }
+            GradientStop { position: 0.5; color: Qt.darker(themeColor, 4.0) }
+            GradientStop { position: 1.0; color: Qt.darker(themeColor, 6.0) }
         }
         border.color: "#111"; border.width: 1
         // App Logo
@@ -371,14 +371,14 @@ Window {
             }
         }
     }
-    Rectangle { // top bar background
+    Rectangle {
         anchors.fill: parent;
         gradient: Gradient {
             orientation: Gradient.Vertical;
-            GradientStop { position: 0.0; color: "#FF303030" }
-            GradientStop { position: 0.5; color: "#FF1A1A1A" }
-            GradientStop { position: 1.0; color: "#FF050505" }
-        }
+			GradientStop { position: 0.0; color: Qt.darker(themeColor, 6.0) }
+			GradientStop { position: 0.5; color: Qt.darker(themeColor, 12.0) }
+			GradientStop { position: 1.0; color: Qt.darker(themeColor, 18.0) }
+		}
     }
 
     // --- WINDOW RESIZE HANDLERS ---
@@ -558,13 +558,12 @@ Window {
     }
 
     // --- MAIN CONTENT AREA (Layout Root) ---
-    Item {
+    ColumnLayout {
         id: mainContentArea
-        anchors.top: customTitleBar.bottom  // Anchor to custom title bar
+        anchors.top: customTitleBar.bottom // Anchor to custom title bar
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: playbackControls.top // Anchor to the new controls bar ID
-        anchors.margins: 10
+		anchors.bottom: parent.bottom
 
         // --- STATES FOR SIDEBAR COLLAPSE ---
         states: [
@@ -592,19 +591,20 @@ Window {
         // --- MAIN LAYOUT ---
         RowLayout {
             id: mainRowLayout
-            anchors.fill: parent
+			Layout.fillWidth: true; Layout.fillHeight: true
+			Layout.leftMargin: 5; Layout.rightMargin: 5; Layout.topMargin: 5
             spacing: 10
 
             // --- INSTANTIATE SIDEBAR ---
             SidebarPane {
-                id: sidebar // Give it an ID to target in states/transitions
+                id: sidebar 
                 Layout.fillHeight: true
-                localManager: cppLocalManager // Pass C++ object reference directly
-                spotifyManager: cppSpotifyManager // Pass C++ object reference directly
-                collapsed: sidebarCollapsed // Bind state property
-                onCollapseToggleRequested: { // Handle signal coming up from sidebar
+                localManager: cppLocalManager 
+                spotifyManager: cppSpotifyManager 
+                collapsed: sidebarCollapsed 
+                onCollapseToggleRequested: { 
                     console.log("[Main] CollapseToggleRequested received");
-                    sidebarCollapsed = !sidebarCollapsed; // Toggle state here
+                    sidebarCollapsed = !sidebarCollapsed;
                 }
                 onSidebarSelected: (instance) => {
                     console.log("[Main] Clicked " + instance);
@@ -623,10 +623,8 @@ Window {
                 id: tracklistPane
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-
-                // Pass required properties down
-                trackModel: cppTrackModel // Pass C++ object reference directly
-                currentTrackIndex: mainWindow.currentlyPlayingIndex // Bind playback state
+                trackModel: cppTrackModel 
+                currentTrackIndex: mainWindow.currentlyPlayingIndex 
 
                 sortColumn: mainWindow.currentSortColumn
                 sortOrder: mainWindow.currentSortOrder
@@ -705,23 +703,22 @@ Window {
                     }
                 }
             } // End TrackListPane Instance
-        } // End Main RowLayout
+		} // End Main RowLayout
+
+			
+		// --- INSTANTIATE PLAYBACK CONTROLS BAR ---
+		PlaybackControlsBar {
+			id: playbackControls 
+			Layout.fillWidth: true; Layout.preferredHeight: 85
+			controlsEnabled: backendIsReady 
+			mediaPlayerInstance: trackPlayer
+			trackCount: cppTrackModel.tracks.length 
+			currentTrackIdx: mainWindow.currentlyPlayingIndex 
+		} // End PlaybackControlsBar Instance
+
+
+
     } // End Main Content Area Item
-
-
-    // --- INSTANTIATE PLAYBACK CONTROLS BAR ---
-    PlaybackControlsBar {
-        id: playbackControls // Give it an ID for anchoring mainContentArea
-        anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-        height: 70 // Keep height defined here
-
-        controlsEnabled: backendIsReady // Pass the readiness flag
-
-        mediaPlayerInstance: trackPlayer // *** Pass the MediaPlayer instance ***
-        trackCount: cppTrackModel.tracks.length // Initial value
-        currentTrackIdx: mainWindow.currentlyPlayingIndex // Initial value
-    } // End PlaybackControlsBar Instance
-
 
 
 } // End Window

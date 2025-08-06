@@ -6,13 +6,13 @@ import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: sidebarPane
-    color: "#AA252528"; radius: 5; border.color: "#444"; border.width: 1; clip: true
+    color: Qt.darker(themeColor, 4.0); radius: 5; border.color: "#444"; border.width: 1; clip: true
 
     // --- PROPERTIES ---
     required property var localManager
     required property var spotifyManager
     required property bool collapsed // Determines visibility of top controls
-    property string currentGrouping: "ARTIST"
+    property string currentGrouping: "ARTISTS"
     property string sourceIcon: "qrc:/icons/artist_icon.png"
     property bool showToggle: false
     property string currentSelectedId: ""  // Track currently selected item ID
@@ -24,7 +24,7 @@ Rectangle {
     readonly property string allTracksId: "*ALL_TRACKS*"
     readonly property real baseRowHeight: 45
     readonly property real baseFontSize: 12
-    readonly property real baseImageSize: 24
+    readonly property real baseImageSize: 30
 	
     // --- SIGNALS ---
     signal collapseToggleRequested
@@ -36,6 +36,14 @@ Rectangle {
     FontLoader {
         id: customFont
         source: "qrc:/fonts/yeezy_tstar-bold-webfont.ttf"
+    }
+	
+	// -- INIT --
+	Component.onCompleted: {
+        if (localManager) {
+            console.log("[SidebarPane] Component completed. Setting initial grouping to:", currentGrouping)
+            localManager.setGrouping(currentGrouping)
+        }
     }
 
     // --- UI LAYOUT ---
@@ -80,7 +88,7 @@ Rectangle {
                     enabled: !mainWindow.isScanningLocalFiles
                     onClicked: {
                         if (localManager && typeof localManager.selectAndScanParentFolderForArtists === "function") {
-                            localManager.selectAndScanParentFolderForArtists();
+							localManager.selectAndScanParentFolderForArtists();
                         }
                     }
                 }
@@ -157,31 +165,30 @@ Rectangle {
 
             ListView {
 				id: sidebarListView; anchors.fill: parent; clip: true; currentIndex: -1
-                model: localManager ? localManager.sidebarItems : null; spacing: 2
-
+                model: localManager ? localManager.sidebarItems : null; spacing: 5
                 onModelChanged: {
-                    // Reset default index
                     sidebarPane.defaultAllTracksIndex = -1
-                   // Find ALL TRACKS item
-                   if (model) {
-                       for (var i = 0; i < model.length; i++) {
-                           if (model[i].id === allTracksId || model[i].type === "local_all") {
-                               sidebarPane.defaultAllTracksIndex = i
-                               console.log("Found ALL TRACKS at index:", i)
-                               break
-                           }
-                       }
-                   }
+					if (model) {
+						for (var i = 0; i < model.length; i++) {
+							if (model[i].id === allTracksId || model[i].type === "local_all") {
+								sidebarPane.defaultAllTracksIndex = i
+                                console.log("Found ALL TRACKS at index:", i)
+                                break
+                            }
+                        }
+                    }
                 }
-                delegate: Rectangle {
+				delegate: Rectangle {
+					id: delegateItem
                     width: sidebarListView.width
-                    height: 45 * rowScale
+                    height: !collapsed ? 50 : sidebarListView.width
                     radius: 3
                     color: sidebarListView.currentIndex === index ? "#40FFFFFF" :
                           (delegateMouseArea.containsMouse ? "#25FFFFFF" : "transparent")
 
                     property bool isSpotify: modelData.type === "spotify_playlist"
-                    property bool isArtist: modelData.type === "local_artist"
+					property bool isArtist: modelData.type === "local_artist"
+					property bool isAlbum: modelData.type === "local_album"
                     property bool isAllTracks: modelData.type === "local_all"
                     property string displayName: modelData.name
 
@@ -192,21 +199,23 @@ Rectangle {
                         spacing: 10
 
                         Image {
-                            width: baseImageSize * rowScale
-                            height: baseImageSize * rowScale
-                            anchors.verticalCenter: parent.verticalCenter
+							width: collapsed ? delegateItem.width - 2 : parent.height
+                            height: delegateItem.height - 5 
+							anchors.horizontalCenter: parent.horizontalCenter
                             source: {
-                                if (isAllTracks) return "qrc:/icons/all_tracks_icon.png"
-                                if (isSpotify) return "qrc:/icons/spotify_playlist_icon.png"
-                                return "qrc:/icons/artist_icon.png"
+                                if (isAllTracks) return modelData.iconSource
+								if (isSpotify) return "qrc:/icons/spotify_playlist_icon.png"
+								if (isAlbum) return modelData.iconSource
+								if (isArtist) return modelData.iconSource
+								return ""
                             }
                         }
 
                         Column {
-                            width: parent.width - 44
+                            width: parent.width
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2 * rowScale
-
+							visible: !collapsed
                             Text {
                                 width: parent.width
                                 text: displayName
@@ -227,36 +236,29 @@ Rectangle {
                     }
 
                     MouseArea {
-                        id: delegateMouseArea
+						id: delegateMouseArea
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
+						onClicked: {
+							var item = modelData
                             if (sidebarListView.currentIndex === index) {
                                 // If already selected, unselect and select ALL TRACKS
                                 if (sidebarPane.defaultAllTracksIndex >= 0 && index !== sidebarPane.defaultAllTracksIndex) {
-                                    // Switch to ALL TRACKS
+                                    item = sidebarListView.model[sidebarPane.defaultAllTracksIndex]
                                     sidebarListView.currentIndex = sidebarPane.defaultAllTracksIndex
-                                    var allTracksItem = sidebarListView.model[sidebarPane.defaultAllTracksIndex]
-                                    sidebarPane.currentSelectedId = allTracksItem.id
-                                    sidebarPane.sidebarSelected(allTracksItem.id)
-                                    localManager.loadTracksForArtist(allTracksItem.id)
-                                    console.log("Switched to ALL TRACKS:", allTracksItem.name)
+                                    console.log("Switched to ALL TRACKS:", item.name)
                                 } else {
-                                    // Handle when clicking the ALL TRACKS item when it's already selected
-                                    // or when there's no ALL TRACKS item - just maintain current selection
-                                    console.log("Maintaining current selection")
+									console.log("Maintaining current selection")
+									return;
                                 }
                             } else {
-                                // Normal selection
-                                sidebarListView.currentIndex = index
-                                sidebarPane.currentSelectedId = modelData.id
-                                sidebarPane.sidebarSelected(modelData.id)
-                                localManager.loadTracksForArtist(modelData.id)
-
-
-                                console.log("Selected:", modelData.name, "ID:", modelData.id, "Type:", modelData.type)
-                            }
+								sidebarListView.currentIndex = index
+								console.log("Selected:", item.name, "ID:", item.id, "Type:", item.type)
+							}
+							sidebarPane.currentSelectedId = item.id
+                            sidebarPane.sidebarSelected(item.id)
+                            localManager.loadTracksFor(item.id, item.type)
                         }
 
                         onWheel: function(wheel) {
@@ -276,14 +278,13 @@ Rectangle {
 
 		} // End Rectangle
 
-		// --- COLLAPSE BUTTON ---
+		// --- GROUP BY BUTTON ---
 		RowLayout {
             Layout.fillWidth: true
-            height: 40 // Provides a decent vertical click area
-			Layout.topMargin: 5 // Space above the button
+            height: 40 
+			Layout.topMargin: 5 
 			spacing: 5
 
-            // This first spacer is always visible. It pushes the icon to the right.
 			Item { 
 				Layout.fillWidth: true
 				visible: sidebarPane.collapsed
@@ -295,53 +296,39 @@ Rectangle {
 				Layout.fillWidth: true
 				visible: !collapsed
 				height: 30
-				radius: 4
+				radius: 12
 				color: sourcesMouseArea.pressed ? "#33FFFFFF" :
                   (sourcesMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
 				border.color: sourcesLabel.enabled ? "#666" : "#444"
 				border.width: 1
-
-				Row {
+				Text {
+					id: sourceText
+					font.family: customFont.name
+					text: currentGrouping
+					color: "white"
+					font.pixelSize: 14
 					anchors.centerIn: parent
-					spacing: 8
-					Image {
-						id: sourcesIcon
-						source: sourceIcon
-						width: 16
-						height: 16
-						anchors.verticalCenter: parent.verticalCenter
-					}
-					Text {
-						id: sourceText
-						font.family: customFont.name
-						text: "Group by: " + currentGrouping
-						color: "white"
-						font.pixelSize: 12
-						anchors.verticalCenter: parent.verticalCenter
-					}
 				}
-
 				MouseArea {
 					id: sourcesMouseArea
 					anchors.fill: parent
 					hoverEnabled: true
 					cursorShape: Qt.PointingHandCursor
 					onClicked: {
-						if (currentGrouping === "ARTIST") {
-							currentGrouping = "ALBUM"
+						if (currentGrouping === "ARTISTS") {
+							currentGrouping = "PLAYLISTS"
 							sourceIcon = "qrc:/icons/all_tracks_icon.png"
-						} else if (currentGrouping === "ALBUM") {
-							currentGrouping = "PLAYLIST"
+						} else if (currentGrouping === "PLAYLISTS") {
+							currentGrouping = "ALBUMS"
 							sourceIcon = "qrc:/icons/all_tracks_icon.png"
 						} else {
-							currentGrouping = "ARTIST"
+							currentGrouping = "ARTISTS"
 							sourceIcon = "qrc:/icons/artist_icon.png"
 						}
+						localManager.setGrouping(currentGrouping)
 					}
 				}
 			}
-
-            // The icon and its clickable area
             Text {
                 id: toggleIcon
                 text: sidebarPane.collapsed ? ">" : "<"
@@ -358,14 +345,11 @@ Rectangle {
                 }
             }
 
-            // This *second* spacer is ONLY visible when collapsed.
-            // With both spacers active, the icon is pushed to the center.
-            // When expanded, this spacer is hidden, and the first spacer pushes the icon to the far right.
             Item {
                 Layout.fillWidth: true
                 visible: sidebarPane.collapsed
             }
-		} // --- END COLLAPSE BUTTON
+		} // --- END BOTTOM ROW
 
 		SidebarSettings {
 			id: sidebarSettings
