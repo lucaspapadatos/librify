@@ -24,7 +24,7 @@ Rectangle {
     readonly property string allTracksId: "*ALL_TRACKS*"
     readonly property real baseRowHeight: 45
     readonly property real baseFontSize: 12
-    readonly property real baseImageSize: 30
+	readonly property real baseImageSize: 30
 	
     // --- SIGNALS ---
     signal collapseToggleRequested
@@ -53,20 +53,35 @@ Rectangle {
 
         // --- ACTION BUTTONS ---
         RowLayout {
-            visible: !collapsed
             Layout.fillWidth: true
             spacing: 5
+
+			// Collapse Button
+            Text {
+                id: toggleIcon
+                text: sidebarPane.collapsed ? ">" : "<"
+                color: "#AAAAAA"
+                font.pixelSize: 22
+                font.bold: true
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -10 // Make click area larger than the text
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: sidebarPane.collapseToggleRequested()
+                }
+			}
 
             // Local Files Button
             Rectangle {
                 id: loadLocalButton
                 Layout.fillWidth: true
                 height: 30
-                radius: 20
+				radius: 20
+				visible: !collapsed
                 color: mouseArea.pressed ? "#33FFFFFF" :
                       (mouseArea.containsMouse ? "#22FFFFFF" : "transparent")
                 opacity: mainWindow.isScanningLocalFiles ? 0.5 : 1.0
-
                 Row {
                     anchors.centerIn: parent
                     spacing: 8
@@ -79,7 +94,6 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
-
                 MouseArea {
                     id: mouseArea
                     anchors.fill: parent
@@ -100,6 +114,7 @@ Rectangle {
                 Layout.fillWidth: true
                 height: 30
                 radius: 20
+				visible: !collapsed
                 color: spotifyMouseArea.pressed ? "#33FFFFFF" :
                       (spotifyMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
                 enabled: cppSpotifyManager.isAuthenticated && !mainWindow.isScanningLocalFiles
@@ -156,13 +171,13 @@ Rectangle {
 					}
 				}
 			}
+
 		}
 
         // --- LIST OF ARTISTS/ALBUMS/PLAYLISTS ---
         Rectangle {
             id: sidebarViewWrapper
             Layout.fillWidth: true; Layout.fillHeight: true; color: "transparent"
-
             ListView {
 				id: sidebarListView; anchors.fill: parent; clip: true; currentIndex: -1
                 model: localManager ? localManager.sidebarItems : null; spacing: 5
@@ -185,37 +200,51 @@ Rectangle {
                     radius: 3
                     color: sidebarListView.currentIndex === index ? "#40FFFFFF" :
                           (delegateMouseArea.containsMouse ? "#25FFFFFF" : "transparent")
-
+					Behavior on height {
+						NumberAnimation {
+							duration: transitionSpeed
+							easing.type: Easing.InOutQuad
+						}
+					}
                     property bool isSpotify: modelData.type === "spotify_playlist"
 					property bool isArtist: modelData.type === "local_artist"
 					property bool isAlbum: modelData.type === "local_album"
                     property bool isAllTracks: modelData.type === "local_all"
                     property string displayName: modelData.name
 
-                    Row {
-                        anchors.fill: parent
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
-                        spacing: 10
-
-                        Image {
-							width: collapsed ? delegateItem.width - 2 : parent.height
-                            height: delegateItem.height - 5 
-							anchors.horizontalCenter: parent.horizontalCenter
+					RowLayout {
+						id: delegateRowLayout
+						anchors.fill: parent
+						anchors.leftMargin: collapsed ? 0 : 2
+                        spacing: 5
+						Image {
+                            Layout.preferredWidth: delegateItem.height - 5
+							Layout.preferredHeight: delegateItem.height - 5
+							Layout.alignment: collapsed ? Qt.AlignCenter : Qt.AlignLeft
+							clip: true
+							Behavior on Layout.preferredWidth { 
+								NumberAnimation { 
+									duration: transitionSpeed; easing.type: Easing.InOutQuad } }
+							Behavior on Layout.preferredHeight { 
+								NumberAnimation { 
+									duration: transitionSpeed; easing.type: Easing.InOutQuad } }
                             source: {
                                 if (isAllTracks) return modelData.iconSource
-								if (isSpotify) return "qrc:/icons/spotify_playlist_icon.png"
-								if (isAlbum) return modelData.iconSource
-								if (isArtist) return modelData.iconSource
-								return ""
+                                if (isSpotify) return "qrc:/icons/spotify_playlist_icon.png"
+                                if (isAlbum) return modelData.iconSource
+                                if (isArtist) return modelData.iconSource
+                                return ""
                             }
-                        }
-
+                        } 
                         Column {
-                            width: parent.width
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 2 * rowScale
-							visible: !collapsed
+							Layout.fillWidth: true
+							Layout.alignment: Qt.AlignVCenter
+							spacing: 2 * rowScale
+							opacity: !collapsed ? 1.0 : 0.0
+							Behavior on opacity {
+								NumberAnimation { duration: transitionSpeed - 50 } // Fade a bit faster
+							}
+							visible: opacity > 0
                             Text {
                                 width: parent.width
                                 text: displayName
@@ -223,7 +252,6 @@ Rectangle {
                                 font { family: customFont.name; pixelSize: baseFontSize * rowScale }
                                 elide: Text.ElideRight
                             }
-
                             Text {
                                 width: parent.width
                                 visible: !collapsed
@@ -329,21 +357,6 @@ Rectangle {
 					}
 				}
 			}
-            Text {
-                id: toggleIcon
-                text: sidebarPane.collapsed ? ">" : "<"
-                color: "#AAAAAA"
-                font.pixelSize: 22
-                font.bold: true
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -10 // Make click area larger than the text
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: sidebarPane.collapseToggleRequested()
-                }
-            }
 
             Item {
                 Layout.fillWidth: true

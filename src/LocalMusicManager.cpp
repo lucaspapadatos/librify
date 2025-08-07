@@ -28,7 +28,6 @@
 #include <taglib/id3v2tag.h>
 #include <taglib/attachedpictureframe.h>
 #include <taglib/tbytevector.h>
-// ----------------------
 
 //=============================================================================
 // Constructor
@@ -180,8 +179,9 @@ void LocalMusicManager::scanDefaultMusicFolder() {
         return;
     }
 
-    QString defaultMusicPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation) + "/Local";
-    if (defaultMusicPath.isEmpty()) {
+    //QString defaultMusicPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation) + "/Local";
+    QString defaultMusicPath = "/mnt/BACKUP/ISOLATEDSEAGATE/Music";
+	if (defaultMusicPath.isEmpty()) {
         qWarning() << "[LocalMusicManager] Default music location not found. Cannot start default scan.";
         // Optionally emit a signal for failure
         return;

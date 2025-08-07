@@ -28,7 +28,6 @@ Popup {
 
         ColumnLayout {
             Layout.fillWidth: true
-            visible: !collapsed
             spacing: 5
 
 			// Default directory type with browse option

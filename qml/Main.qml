@@ -29,7 +29,8 @@ Window {
     readonly property color themeLottaRed: "#A22131"
     readonly property color themeGreen: "#1DB954"
     readonly property color themeAtKnight: "#a6b5ba"
-    readonly property color yzyMusic: "#c0c0cc"
+	readonly property color yzyMusic: "#c0c0cc"
+	readonly property int transitionSpeed: 200
 
     // --- PROPERTIES ---
     property color themeColor: yzyMusic
@@ -583,7 +584,7 @@ Window {
                 NumberAnimation {
                     target: sidebar
                     property: "Layout.preferredWidth"
-                    duration: 200; easing.type: Easing.InOutQuad
+                    duration: transitionSpeed; easing.type: Easing.InOutQuad
                 }
             }
         ]
