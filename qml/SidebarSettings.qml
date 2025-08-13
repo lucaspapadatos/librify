@@ -1,113 +1,215 @@
 // SidebarSettings.qml
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls 
+import QtQuick.Layouts
+import QtQuick.Dialogs
+import QtCore 6.5
+import Qt.labs.platform as Platform
 
 Popup {
     id: root
-	modal: true; anchors.centerIn: Overlay.overlay; width: 350; height: 380; padding: 15
+	modal: true; anchors.centerIn: Overlay.overlay; width: 360; height: 380; padding: 15
 	background: Rectangle { color: "#2E2E2E"; radius: 5; border.color: "#444"; border.width: 1 }
 
-    signal saveRequested(bool crossfadeEnabled)
+	required property var settings
 
-    function openSettings() {
-        // crossfadeCheckbox.checked = cppConfigManager.getCrossfade();
+	signal saveRequested(string newDirectory, color newColor, string newGrouping)
+
+	property color initialColor: "#FF0000"
+	property string initialDirectory: ""
+	property var initialColorList: []
+    property string initialGrouping: "ARTISTS"
+
+	property color _selectedColor: initialColor
+	property string _selectedDirectory: initialDirectory
+	property list<color> _themeColorList: initialColorList
+
+	// --- FILE DIALOG FOR DIRECTORY ---
+    Platform.FolderDialog {
+        id: fileDialog
+		title: "Select Default Music Directory"
+        folder: StandardPaths.writableLocation(StandardPaths.MusicLocation)
+		onAccepted: {
+			var selectedPath = fileDialog.folder.toString().replace("file://", "")
+            _selectedDirectory = selectedPath
+            directoryField.text = selectedPath
+        }
+    }
+
+	function openSettings(currentGrouping, currentColor, currentDirectory, colorList) {
+		_selectedColor = initialColor;
+        _selectedDirectory = initialDirectory;
+        _themeColorList = initialColorList;
+        directoryField.text = initialDirectory;
         root.open()
     }
 
     // --- UI LAYOUT ---
     ColumnLayout {
         anchors.fill: parent; spacing: 15
-
         Label {
-            text: "SettingsZ"
+            text: "Settings"
             font.pixelSize: 18
             color: "white"
             Layout.alignment: Qt.AlignHCenter
         }
-
-        ColumnLayout {
+		// 1. DEFAULT DIRECTORY
+		Label {
+			text: "Default Music Directory"
+            color: "#AAAAAA"
+            font.bold: true
+		}
+		RowLayout {
             Layout.fillWidth: true
-            spacing: 5
-
-			// Default directory type with browse option
-			RowLayout {}
-
-            // Include singles with albums toggle switch
-            RowLayout {
+            TextField {
+                id: directoryField
                 Layout.fillWidth: true
-                anchors.leftMargin: 15
-                anchors.rightMargin: 15
-                Text {
-                    text: "INCLUDE SINGLES WITH ALBUMS"
+                placeholderText: cppLocalManager.defaultMusicPath
+                color: "#333"
+                background: Rectangle {
                     color: "white"
-                    font.pixelSize: 12
-                    Layout.alignment: Qt.AlignVCenter
-                }
-                Item { Layout.fillWidth: true } // Spacer
-                ToggleSwitch {
-                    id: showEpToggle
-                    // Connect the signal to an action
-                    onToggled: console.log("Show SP/EPs toggled:", isChecked)
+                    border.color: "#444"
+                    radius: 4
                 }
             }
-            
-            // Enable crossfade
-            RowLayout {
-                Layout.fillWidth: true
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                Text {
-                    text: "Enable Crossfade"
-                    color: "white"
-                    font.pixelSize: 12
-                    Layout.alignment: Qt.AlignVCenter
-                }
-                Item { Layout.fillWidth: true } // Spacer
-                ToggleSwitch {
-                    id: crossfadeToggle
-                    checked: true // Can be set to be on by default
-                    onToggled: console.log("Crossfade toggled:", isChecked)
-                }
+			Rectangle  {
+				Layout.preferredWidth: 100
+				Layout.preferredHeight: directoryField.height
+				radius: 4
+				color: browseMouseArea.pressed ? Qt.darker(themeColor) :
+                  (browseMouseArea.containsMouse ? Qt.darker(themeColor) : "transparent")
+				border.color: "#444"
+				border.width: 1
+				MouseArea {
+					id: browseMouseArea
+					anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor;
+					onClicked: fileDialog.open()
+				}
+				Text {
+					text: "Browse"
+					font.pixelSize: 14
+					anchors.centerIn: parent
+					color: "white"
+				}
+
             }
-
-            // High quality
-            RowLayout {
-                Layout.fillWidth: true
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                Text {
-                    text: "High Quality"
-                    color: "white"
-                    font.pixelSize: 12
-                    Layout.alignment: Qt.AlignVCenter
-                }
-                Item { Layout.fillWidth: true } // Spacer
-                ToggleSwitch {
-                    id: qualityToggle
-                    onColor: "dodgerblue" // Example of customizing the 'on' color
-                    onToggled: console.log("High Quality toggled:", isChecked)
-                }
-			}
-
-			// Default grouping
-			RowLayout {}
         }
+		// --- 2. THEME COLOR ---
+        Label {
+            text: "Theme Color"
+            color: "#AAAAAA"
+            font.bold: true
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+            Repeater {
+                model: _themeColorList
+                delegate: Rectangle {
+                    property color modelColor: modelData
+                    width: 30; height: 30; radius: 15
+                    color: modelColor
+                    border.color: _selectedColor.toString() === modelColor.toString() ? "white" : "transparent"
+                    border.width: 2
+
+                    ToolTip.visible: mouseArea.containsMouse
+                    ToolTip.text: modelColor.toString()
+
+                    MouseArea {
+                        id: mouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            _selectedColor = modelColor
+                        }
+                    }
+                }
+            }
+        }
+		// --- 3. SIDEBAR GROUPING ---
+        Label {
+            text: "Default Sidebar Grouping"
+            color: "#AAAAAA"
+            font.bold: true
+        }
+        ButtonGroup { id: groupingGroup }
+        RowLayout {
+            spacing: 10
+            RadioButton {
+                id: artistsRadio
+                text: "Artists"
+				ButtonGroup.group: groupingGroup
+				checked: root.initialGrouping === "ARTISTS"
+                contentItem: Text {
+                    text: parent.text
+                    color: "white"
+                    font: parent.font
+                    leftPadding: parent.indicator.width + parent.spacing
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+            RadioButton {
+                id: albumsRadio
+                text: "Albums"
+				ButtonGroup.group: groupingGroup
+				checked: root.initialGrouping === "ALBUMS"
+                contentItem: Text {
+					text: parent.text
+					color: "white"
+                    font: parent.font
+                    leftPadding: parent.indicator.width + parent.spacing
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+            RadioButton {
+                id: playlistsRadio
+                text: "Playlists"
+				ButtonGroup.group: groupingGroup
+				checked: root.initialGrouping === "PLAYLISTS"
+				contentItem: Text {
+					text: parent.text
+					color: "white"
+					font: parent.font
+					leftPadding: parent.indicator.width + parent.spacing
+					verticalAlignment: Text.AlignVCenter
+				}
+            }
+        }
+
+        Item { Layout.fillHeight: true } // Spacer
+		
 
         // --- Action Buttons ---
         RowLayout {
             Layout.alignment: Qt.AlignRight; spacing: 10
             Button {
                 text: "Save"
-                highlighted: true 
-                onClicked: {
-                    root.settingsSaved(crossfadeCheckbox.checked)
+				highlighted: true
+				MouseArea {
+					anchors.fill: parent; hoverEnabled: true;
+					cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.NoButton
+				}
+				onClicked: {
+					var newGrouping = "ARTISTS";
+                    if (albumsRadio.checked) newGrouping = "ALBUMS";
+                    else if (playlistsRadio.checked) newGrouping = "PLAYLISTS";
+                    var newColor = _selectedColor;
+					var newDirectory = directoryField.text;
+					settings.setValue("sidebarGrouping", newGrouping);
+                    settings.setValue("themeColor", newColor.toString());
+                    settings.setValue("defaultDirectory", newDirectory);
+                    root.saveRequested(newDirectory, newColor, newGrouping)
                     root.close()
                 }
             }
             Button {
-                text: "Close"
-                onClicked: root.close() 
+				text: "Close"
+				MouseArea {
+					anchors.fill: parent; hoverEnabled: true;
+					cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.NoButton
+				}
+				onClicked: root.close()
             }
         }
     }

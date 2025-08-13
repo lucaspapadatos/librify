@@ -20,6 +20,10 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+
+	QCoreApplication::setOrganizationName("Relentless");
+    QCoreApplication::setApplicationName("Librify");
+
     app.setWindowIcon(QIcon(":/icons/batRubyRed2.png"));
 
     QQuickStyle::setStyle("Basic");
@@ -64,7 +68,7 @@ int main(int argc, char *argv[])
     }
 
     // --- Load fonts ---
-    int fontId = QFontDatabase::addApplicationFont(":/fonts/Inter/static/Inter_18pt-SemiBold.ttf");
+    int fontId = QFontDatabase::addApplicationFont(":/fonts/yeezy_tstar-bold-webfont.ttf");
     QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
     if (!fontFamilies.isEmpty()) {
         QFont defaultFont(fontFamilies.first());

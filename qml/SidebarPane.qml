@@ -11,7 +11,8 @@ Rectangle {
     // --- PROPERTIES ---
     required property var localManager
     required property var spotifyManager
-    required property bool collapsed // Determines visibility of top controls
+	required property bool collapsed
+	required property var settings
     property string currentGrouping: "ARTISTS"
     property string sourceIcon: "qrc:/icons/artist_icon.png"
     property bool showToggle: false
@@ -40,6 +41,7 @@ Rectangle {
 	
 	// -- INIT --
 	Component.onCompleted: {
+		currentGrouping = settings.value("sidebarGrouping", "ARTISTS");
         if (localManager) {
             console.log("[SidebarPane] Component completed. Setting initial grouping to:", currentGrouping)
             localManager.setGrouping(currentGrouping)
@@ -167,7 +169,21 @@ Rectangle {
 					cursorShape: Qt.PointingHandCursor
 					onClicked: {
 						console.log("[SidebarPane] Settings button clicked")
-						sidebarSettings.openSettings()
+						if (settingsLoader.item) {
+							settingsLoader.item.initialGrouping = sidebarPane.currentGrouping;
+							settingsLoader.item.initialColor = mainWindow.themeColor;
+							settingsLoader.item.initialDirectory = mainWindow.defaultDirectory;
+							settingsLoader.item.initialColorList = mainWindow.themeColorList;
+							settingsLoader.item.openSettings();
+						} else {
+							settingsLoader.setSource("qrc:/SidebarSettings.qml", { 
+								"settings": sidebarPane.settings,
+								"initialGrouping": sidebarPane.currentGrouping,
+								"initialColor": mainWindow.themeColor,
+								"initialDirectory": mainWindow.defaultDirectory,
+								"initialColorList": mainWindow.themeColorList
+							});
+						}
 					}
 				}
 			}
@@ -312,13 +328,10 @@ Rectangle {
             height: 40 
 			Layout.topMargin: 5 
 			spacing: 5
-
 			Item { 
 				Layout.fillWidth: true
 				visible: sidebarPane.collapsed
 			}
-			
-			// Group By Button
 			Rectangle {
 				id: sourcesLabel
 				Layout.fillWidth: true
@@ -357,17 +370,34 @@ Rectangle {
 					}
 				}
 			}
-
             Item {
                 Layout.fillWidth: true
                 visible: sidebarPane.collapsed
             }
-		} // --- END BOTTOM ROW
+		} // --- END GROUP BY BUTTON
 
-		SidebarSettings {
-			id: sidebarSettings
-			onSaveRequested: () => {
+		Loader {
+			id: settingsLoader
+			onLoaded: { 
+				item.openSettings(
+                    sidebarPane.currentGrouping,
+                    mainWindow.themeColor,
+                    mainWindow.defaultDirectory,
+                    mainWindow.themeColorList
+                );
+			}
+		}
+		Connections { 
+			target: settingsLoader.item
+			function onSaveRequested(newDirectory, newColor, newGrouping) {
 				console.log("[SidebarPane.qml]: Save requested.");
+				// Update the properties in the main application
+                sidebarPane.currentGrouping = newGrouping;
+                mainWindow.themeColor = newColor;
+                mainWindow.defaultDirectory = newDirectory;
+                // Inform the backend of the change
+				localManager.setGrouping(newGrouping);
+				localManager.setDefaultMusicPath(newDirectory);
 			}
 		}
 

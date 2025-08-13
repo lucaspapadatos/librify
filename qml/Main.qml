@@ -5,6 +5,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15 as QWindow
 import QtMultimedia 6.8
 import Qt5Compat.GraphicalEffects
+import Qt.labs.settings 1.1
 import com.librify 1.0
 import "."
 
@@ -32,11 +33,12 @@ Window {
 	readonly property color yzyMusic: "#c0c0cc"
 	readonly property int transitionSpeed: 200
 
-    // --- PROPERTIES ---
+	// --- PROPERTIES ---
+	property string defaultDirectory: cppLocalManager.defaultMusicPath
     property color themeColor: yzyMusic
     property bool sidebarCollapsed: false
-    property int currentlyPlayingIndex: -1 // -1 is none
-    property int currentSortColumn: TrackListModel.None // Default using C++ Enum (Ensure Enum accessible or use int 0)
+    property int currentlyPlayingIndex: -1
+    property int currentSortColumn: TrackListModel.None // Default using C++ Enum (Ensure Enum accessible)
     property int currentSortOrder: Qt.AscendingOrder   // Default to Ascending
     property string sidebarSelected: ""
     property string currentlyPlayingFilePath: ""
@@ -45,7 +47,20 @@ Window {
     property bool isScanningLocalFiles: false
     property bool playAfterNextScan: false
     property bool isMaximized: false
-    property bool isMinimized: false
+	property bool isMinimized: false
+
+	property list<color> themeColorList: [
+		yzyMusic,
+		themeGreen,
+		themeAtKnight,
+		themeBatRed,
+		themeLottaRed
+	]
+
+	// --- SETTINGS ---
+	Settings {	id: appSettings	
+		category: "Appearance"
+	}
 
     // --- FONTS ---
     FontLoader {
@@ -195,14 +210,18 @@ Window {
         }
 	}
 
-	// -- Initialize media player to playback manager
+	// --- INIT ---
     Component.onCompleted: {
         console.log("[Main] Window mainWindow Completed.")
         if (cppPlaybackManager && typeof cppPlaybackManager.setMediaPlayer === "function") {
             cppPlaybackManager.setMediaPlayer(trackPlayer);
         } else {
             console.error("[Main] Error: Cannot call setMediaPlayer in backend");
-        }
+		}
+		// Load settings
+		themeColor = appSettings.value("themeColor", yzyMusic);
+		defaultDirectory = appSettings.value("defaultDirectory", "");
+		console.log(`[Main] Loaded settings: themeColor=${themeColor}, defaultDirectory=${defaultDirectory}`);
     }
 
     // --- TITLE BAR (eventually move to dedicated qml file) ---
@@ -598,7 +617,8 @@ Window {
 
             // --- INSTANTIATE SIDEBAR ---
             SidebarPane {
-                id: sidebar 
+				id: sidebar 
+				settings: appSettings
                 Layout.fillHeight: true
                 localManager: cppLocalManager 
                 spotifyManager: cppSpotifyManager 
@@ -610,12 +630,6 @@ Window {
                 onSidebarSelected: (instance) => {
                     console.log("[Main] Clicked " + instance);
                     mainWindow.sidebarSelected = instance
-				}
-				SidebarSettings {
-					id: sidebarSettings
-					onSaveRequested: () => {
-						console.log("[Main] on save requested");
-					}
 				}
             } // End SidebarPane Instance
 

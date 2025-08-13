@@ -22,12 +22,14 @@ class LocalMusicManager : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList sidebarItems READ sidebarItems NOTIFY sidebarItemsChanged)
+	Q_PROPERTY(QString defaultMusicPath READ defaultMusicPath WRITE setDefaultMusicPath NOTIFY defaultMusicPathChanged)
 
 public:
     explicit LocalMusicManager(QObject *parent = nullptr);
     ~LocalMusicManager(); // Add destructor for watcher cleanup later maybe
     QVariantList sidebarItems() const;
     QStringList splitArtistName(const QString &artistName);
+	QString defaultMusicPath() const;
 
 public slots:
     void selectAndScanParentFolderForArtists();
@@ -37,11 +39,13 @@ public slots:
     void writeTrackTags(const QString &filePath, const QString &title,
                         const QString &artist, const QString &album,
                         const QString &imagePath);
+	void setDefaultMusicPath(const QString &filePath);
 
 private slots: 
     void handleScanFinished();
 
 signals:
+	void defaultMusicPathChanged();
     void sidebarItemsChanged();
     void loadingError(const QString &errorMsg);
     void loadingProgress(int current, int total);
@@ -63,6 +67,7 @@ private:
 	void rebuildSidebarModel();
 
     // Member variables
+	QString m_defaultMusicPath;
     QVariantList m_sidebarItems;
     QString m_selectedParentFolder;
     void scanForArtists(const QString& parentFolderPath);

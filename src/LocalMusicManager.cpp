@@ -39,6 +39,7 @@ LocalMusicManager::LocalMusicManager(QObject *parent) : QObject(parent){
     // of which thread emitted it). This ensures the slot runs safely on the
     // correct thread and avoids the race condition or delivery problem you were
     // experiencing without the constructor log's timing side effect.
+	m_defaultMusicPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation);
     connect(&m_scanWatcher, &QFutureWatcher<ScanResults>::finished,
         this, &LocalMusicManager::handleScanFinished, Qt::QueuedConnection);
 }
@@ -56,6 +57,18 @@ LocalMusicManager::~LocalMusicManager() {
 }
 
 QVariantList LocalMusicManager::sidebarItems() const { return m_sidebarItems; }
+
+QString LocalMusicManager::defaultMusicPath() const { return m_defaultMusicPath; }
+
+//=============================================================================
+// SLOT: Sets default music directory path
+//=============================================================================
+void LocalMusicManager::setDefaultMusicPath(const QString &filePath) {
+	if (m_defaultMusicPath != filePath) {
+		m_defaultMusicPath = filePath;
+		emit defaultMusicPathChanged();
+    }
+}
 
 //=============================================================================
 // FUNCTION: Rewrites the tags of a given mp3 file 
@@ -173,6 +186,7 @@ void LocalMusicManager::writeTrackTags(const QString &filePath, const QString &t
 //=============================================================================
 void LocalMusicManager::scanDefaultMusicFolder() {
     qDebug() << "[LocalMusicManager] scanDefaultMusicFolder() slot called.";
+    qDebug() << m_defaultMusicPath;
     if (m_scanWatcher.isRunning()) {
         qWarning() << "[LocalMusicManager] A scan is already in progress. Please wait.";
         // Optionally emit a signal here if QML needs to know the request was ignored
@@ -180,15 +194,15 @@ void LocalMusicManager::scanDefaultMusicFolder() {
     }
 
     //QString defaultMusicPath = QStandardPaths::writableLocation(QStandardPaths::MusicLocation) + "/Local";
-    QString defaultMusicPath = "/mnt/BACKUP/ISOLATEDSEAGATE/Music";
-	if (defaultMusicPath.isEmpty()) {
+    //QString defaultMusicPath = "/mnt/BACKUP/ISOLATEDSEAGATE/Music";
+	if (defaultMusicPath().isEmpty()) {
         qWarning() << "[LocalMusicManager] Default music location not found. Cannot start default scan.";
         // Optionally emit a signal for failure
         return;
     }
 
-    qDebug() << "[LocalMusicManager] Starting scan of default music folder:" << defaultMusicPath;
-    startScanProcess(defaultMusicPath); // Call the common helper
+    qDebug() << "[LocalMusicManager] Starting scan of default music folder:" << defaultMusicPath();
+    startScanProcess(defaultMusicPath()); // Call the common helper
 }
 void LocalMusicManager::startScanProcess(const QString& folderPath) {
     qDebug() << "[LocalMusicManager] Starting scan process for folder:" << folderPath;
