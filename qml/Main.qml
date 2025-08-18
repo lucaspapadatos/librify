@@ -621,7 +621,8 @@ Window {
 				settings: appSettings
                 Layout.fillHeight: true
                 localManager: cppLocalManager 
-                spotifyManager: cppSpotifyManager 
+				spotifyManager: cppSpotifyManager
+				playlistManager: cppPlaylistManager
                 collapsed: sidebarCollapsed 
                 onCollapseToggleRequested: { 
                     console.log("[Main] CollapseToggleRequested received");

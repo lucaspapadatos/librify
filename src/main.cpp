@@ -6,6 +6,7 @@
 #include "LocalMusicManager.h"
 #include "TrackListModel.h"
 #include "PlaybackManager.h"
+#include "PlaylistManager.h"
 #include <QUrl>
 #include <QDebug>
 #include <QFile>
@@ -21,8 +22,11 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-	QCoreApplication::setOrganizationName("Relentless");
+	QCoreApplication::setOrganizationName("Librify");
     QCoreApplication::setApplicationName("Librify");
+	
+    QString base = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/playlists";
+	qDebug() << base;
 
     app.setWindowIcon(QIcon(":/icons/batRubyRed2.png"));
 
@@ -33,6 +37,7 @@ int main(int argc, char *argv[])
     LocalMusicManager localMusicManager;
     TrackListModel trackListModel;
     PlaybackManager playbackManager;
+	PlaylistManager playlistManager;
 
 	// Ensures enum can be used in Main.qml and TrackListPane.qml
 	qmlRegisterUncreatableType<TrackListModel>(
@@ -46,6 +51,10 @@ int main(int argc, char *argv[])
     qDebug() << "[main] tracksReadyForDisplay => updateTracks: Connected";
     QObject::connect(&localMusicManager, &LocalMusicManager::tracksReadyForDisplay,
                      &trackListModel, &TrackListModel::updateTracks);
+	qDebug() << "[main] tracksReadyForDisplay => updateTracks: Connected";
+    QObject::connect(&playlistManager, &PlaylistManager::tracksReadyForDisplay,
+                     &trackListModel, &TrackListModel::updateTracks);
+
     qDebug() << "[main] trackUpdated => updateTracks: Connected";
     QObject::connect(&localMusicManager, &LocalMusicManager::trackUpdated,
                      &trackListModel, &TrackListModel::updateTrack);
@@ -58,6 +67,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("cppLocalManager", &localMusicManager);
     engine.rootContext()->setContextProperty("cppTrackModel", &trackListModel);
     engine.rootContext()->setContextProperty("cppPlaybackManager", &playbackManager);
+	engine.rootContext()->setContextProperty("cppPlaylistManager", &playlistManager);
 
     // --- Load QML ---
     const QUrl url(QStringLiteral("qrc:/Main.qml"));

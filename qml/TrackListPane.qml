@@ -272,7 +272,7 @@ Rectangle {
                 Rectangle {
                     id: softSelectOverlay
                     anchors.fill: parent
-                    height: hoverOverlay * 0.8; width: hoverOverlay * 0.8; radius: parent.radius + 30
+                    height: hoverOverlay * 0.8; width: hoverOverlay * 0.8; radius: parent.radius
                     color: Qt.rgba(themeColor.r * 0.7, themeColor.g * 0.7, themeColor.b * 0.7, 0.20)
                     visible: delegateRoot.isSoftSelected
                     Behavior on opacity { OpacityAnimator { duration: 80 } }
@@ -285,7 +285,7 @@ Rectangle {
                     anchors.fill: parent
                     color: Qt.rgba(themeColor.r, themeColor.g, themeColor.b, 0.15) // 15% opacity of themeColor
                     visible: delegateMouseArea.containsMouse
-                    radius: parent.radius + 30
+                    radius: parent.radius
                     opacity: visible ? 0.5 : 0
                 }
 

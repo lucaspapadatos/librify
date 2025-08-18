@@ -489,7 +489,7 @@ void LocalMusicManager::recursiveScan(const QString& folderPath, QStringList& fo
 }
 
 //=============================================================================
-// SLOT: Loads tracks for a given identifier (artist/album)
+// SLOT: Loads tracks for a given identifier (artist/album/playlist)
 //=============================================================================
 void LocalMusicManager::loadTracksFor(const QString& identifier, const QString& type) {
 	qDebug() << "[LocalMusicManager] Request received to load tracks for:" << identifier << "of type:" << type;
@@ -503,8 +503,6 @@ void LocalMusicManager::loadTracksFor(const QString& identifier, const QString& 
 
     if (identifier == ALL_TRACKS_IDENTIFIER || type == "local_all") {
         qDebug() << "[loadTracksFor] Loading ALL tracks from cache.";
-        // *** CONVERT m_cachedFullTrackData to QVariantList for assignment ***
-        //tracksToShow.reserve(m_cachedFullTrackData.size());
         for (const QVariantMap& trackMap : m_cachedFullTrackData) {
             tracksToShow.append(trackMap); 
         }
@@ -514,6 +512,39 @@ void LocalMusicManager::loadTracksFor(const QString& identifier, const QString& 
     } else if (type == "local_album") {
 		qDebug() << "[loadTracksFor" << identifier << "] Filtering cache for album:" << identifier;
 		indices = m_albumIndexHash.values(identifier);
+	} else if (type == "local_playlist") {
+		qDebug() << "[loadTracksFor" << identifier << "] Loading playlist tracks";
+        // Build path to playlist JSON
+        QString playlistPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+                               + "/playlists/" + identifier + ".json";
+        QFile file(playlistPath);
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << "[loadTracksFor] Could not open playlist file:" << playlistPath;
+            emit tracksReadyForDisplay(QVariantList());
+            return;
+        }
+        QByteArray jsonData = file.readAll();
+        file.close();
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
+        if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+            qWarning() << "[loadTracksFor] Failed to parse JSON for playlist:" << playlistPath
+                       << "Error:" << parseError.errorString();
+            emit tracksReadyForDisplay(QVariantList());
+            return;
+        }
+        QJsonArray trackArray = doc.object().value("tracks").toArray();
+        for (const QJsonValue &val : trackArray) {
+            if (val.isString()) {
+                QString filePath = val.toString();
+                QVariantMap trackMap = readId3Tags(filePath);
+                if (!trackMap.isEmpty()) {
+                    tracksToShow.append(trackMap);
+                } else {
+                    qWarning() << "[loadTracksFor][playlist] Skipping unreadable track:" << filePath;
+                }
+            }
+        }
 	}
 
 	if (!indices.isEmpty()) {

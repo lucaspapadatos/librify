@@ -10,7 +10,8 @@ Rectangle {
 
     // --- PROPERTIES ---
     required property var localManager
-    required property var spotifyManager
+	required property var spotifyManager
+	required property var playlistManager
 	required property bool collapsed
 	required property var settings
     property string currentGrouping: "ARTISTS"
@@ -44,7 +45,8 @@ Rectangle {
 		currentGrouping = settings.value("sidebarGrouping", "ARTISTS");
         if (localManager) {
             console.log("[SidebarPane] Component completed. Setting initial grouping to:", currentGrouping)
-            localManager.setGrouping(currentGrouping)
+			localManager.setGrouping(currentGrouping)
+			localManager.setDefaultMusicPath(mainWindow.defaultDirectory)
         }
     }
 
@@ -195,8 +197,11 @@ Rectangle {
             id: sidebarViewWrapper
             Layout.fillWidth: true; Layout.fillHeight: true; color: "transparent"
             ListView {
-				id: sidebarListView; anchors.fill: parent; clip: true; currentIndex: -1
-                model: localManager ? localManager.sidebarItems : null; spacing: 5
+				id: sidebarListView; anchors.fill: parent; clip: true; currentIndex: -1; spacing: 5
+				model: {
+					if (currentGrouping === "PLAYLISTS") return playlistManager ? playlistManager.sidebarItems : null
+					return localManager ? localManager.sidebarItems : null
+				}
                 onModelChanged: {
                     sidebarPane.defaultAllTracksIndex = -1
 					if (model) {
@@ -225,7 +230,8 @@ Rectangle {
                     property bool isSpotify: modelData.type === "spotify_playlist"
 					property bool isArtist: modelData.type === "local_artist"
 					property bool isAlbum: modelData.type === "local_album"
-                    property bool isAllTracks: modelData.type === "local_all"
+					property bool isAllTracks: modelData.type === "local_all"
+					property bool isPlaylist: modelData.type === "local_playlist"
                     property string displayName: modelData.name
 
 					RowLayout {
@@ -248,7 +254,8 @@ Rectangle {
                                 if (isAllTracks) return modelData.iconSource
                                 if (isSpotify) return "qrc:/icons/spotify_playlist_icon.png"
                                 if (isAlbum) return modelData.iconSource
-                                if (isArtist) return modelData.iconSource
+								if (isArtist) return modelData.iconSource
+								if (isPlaylist) return modelData.iconSource
                                 return ""
                             }
                         } 
@@ -281,9 +288,7 @@ Rectangle {
 
                     MouseArea {
 						id: delegateMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
 						onClicked: {
 							var item = modelData
                             if (sidebarListView.currentIndex === index) {
@@ -301,8 +306,9 @@ Rectangle {
 								console.log("Selected:", item.name, "ID:", item.id, "Type:", item.type)
 							}
 							sidebarPane.currentSelectedId = item.id
-                            sidebarPane.sidebarSelected(item.id)
-                            localManager.loadTracksFor(item.id, item.type)
+							sidebarPane.sidebarSelected(item.id)
+
+							localManager.loadTracksFor(item.id, item.type)
                         }
 
                         onWheel: function(wheel) {
@@ -352,9 +358,7 @@ Rectangle {
 				}
 				MouseArea {
 					id: sourcesMouseArea
-					anchors.fill: parent
-					hoverEnabled: true
-					cursorShape: Qt.PointingHandCursor
+					anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
 					onClicked: {
 						if (currentGrouping === "ARTISTS") {
 							currentGrouping = "PLAYLISTS"
@@ -366,7 +370,11 @@ Rectangle {
 							currentGrouping = "ARTISTS"
 							sourceIcon = "qrc:/icons/artist_icon.png"
 						}
-						localManager.setGrouping(currentGrouping)
+						if (currentGrouping === "PLAYLISTS") {
+							playlistManager.refreshSidebarItems()
+						} else {
+							localManager.setGrouping(currentGrouping)
+						}
 					}
 				}
 			}
