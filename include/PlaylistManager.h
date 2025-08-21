@@ -2,7 +2,6 @@
 #ifndef PLAYLISTMANAGER_H
 #define PLAYLISTMANAGER_H
 
-
 #include <QObject>
 #include <QVariantList>
 #include <QVariantMap>
@@ -10,8 +9,6 @@
 #include <QDir>
 #include <QJsonArray>
 #include <QJsonObject>
-
-class TrackListModel;
 
 struct Playlist {
 	QString id;
@@ -37,15 +34,12 @@ public:
 	QVariantList sidebarItems() const;
     Q_INVOKABLE void refreshSidebarItems();
 
-	Q_INVOKABLE void createPlaylist(const QString &name);
+	Q_INVOKABLE void createPlaylist(const QString &name, const QString &image);
     Q_INVOKABLE void deletePlaylist(const QString &name);
-
-    Q_INVOKABLE void loadTracksFor(const QString &playlistId);
 
 
 signals:
 	void sidebarItemsChanged();
-	void tracksReadyForDisplay(const QVariantList& loadedTracks);
 
 private:
 	QString playlistsDirPath() const;
@@ -56,7 +50,6 @@ private:
 
 	QList<Playlist> m_playlists;
 	QVariantList m_sidebarItems;
-    TrackListModel *m_trackListModel = nullptr;
 };
 #endif // PLAYLISTMANAGER_H
 

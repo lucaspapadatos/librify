@@ -65,7 +65,8 @@ Rectangle {
                 id: toggleIcon
                 text: sidebarPane.collapsed ? ">" : "<"
                 color: "#AAAAAA"
-                font.pixelSize: 22
+				font.pixelSize: 22
+
                 font.bold: true
                 MouseArea {
                     anchors.fill: parent
@@ -80,7 +81,7 @@ Rectangle {
             Rectangle {
                 id: loadLocalButton
                 Layout.fillWidth: true
-                height: 30
+                height: 32
 				radius: 20
 				visible: !collapsed
                 color: mouseArea.pressed ? "#33FFFFFF" :
@@ -92,15 +93,17 @@ Rectangle {
                     Image {
                         id: allTracksIcon
                         smooth: true
-                        source: "qrc:/icons/all_tracks_icon.png"
-                        width: 16
-                        height: 16
+						source: "qrc:/icons/open_folder.png"
+						fillMode: Image.PreserveAspectFit
+						height: 26
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
                 MouseArea {
                     id: mouseArea
-                    anchors.fill: parent
+					anchors.fill: parent
+					ToolTip.visible: mouseArea.containsMouse
+                    ToolTip.text: "Open Folder"
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     enabled: !mainWindow.isScanningLocalFiles
@@ -116,7 +119,7 @@ Rectangle {
             Rectangle {
                 id: getSpotifyPlaylistsButton
                 Layout.fillWidth: true
-                height: 30
+                height: 32
                 radius: 20
 				visible: !collapsed
                 color: spotifyMouseArea.pressed ? "#33FFFFFF" :
@@ -151,7 +154,7 @@ Rectangle {
 			// Settings Button
 			Rectangle {
 				id: settingsButton
-				Layout.fillWidth: true; height: 30; visible: !collapsed; radius: 20
+				Layout.fillWidth: true; height: 32; visible: !collapsed; radius: 20
 				color: settingsMouseArea.pressed ? "#33FFFFFF" :
                   (settingsMouseArea.containsMouse ? "#22FFFFFF" : "transparent")
 				Row {
@@ -205,10 +208,18 @@ Rectangle {
                 onModelChanged: {
                     sidebarPane.defaultAllTracksIndex = -1
 					if (model) {
+						// Auto-select 2nd item when in PLAYLISTS, if it exists
+						if (currentGrouping === "PLAYLISTS" && model.length > 1) {
+							sidebarListView.currentIndex = 1
+						} else {
+							sidebarListView.currentIndex = sidebarPane.defaultAllTracksIndex >= 0
+								? sidebarPane.defaultAllTracksIndex
+								: 0
+						}
+
 						for (var i = 0; i < model.length; i++) {
 							if (model[i].id === allTracksId || model[i].type === "local_all") {
 								sidebarPane.defaultAllTracksIndex = i
-                                console.log("Found ALL TRACKS at index:", i)
                                 break
                             }
                         }
@@ -232,6 +243,7 @@ Rectangle {
 					property bool isAlbum: modelData.type === "local_album"
 					property bool isAllTracks: modelData.type === "local_all"
 					property bool isPlaylist: modelData.type === "local_playlist"
+					property bool isCreate: modelData.type === "create_playlist"
                     property string displayName: modelData.name
 
 					RowLayout {
@@ -256,6 +268,7 @@ Rectangle {
                                 if (isAlbum) return modelData.iconSource
 								if (isArtist) return modelData.iconSource
 								if (isPlaylist) return modelData.iconSource
+								if (isCreate) return "qrc:/icons/create_playlist_icon.png"
                                 return ""
                             }
                         } 
@@ -278,7 +291,7 @@ Rectangle {
                             Text {
                                 width: parent.width
                                 visible: !collapsed
-                                text: modelData.count + " tracks"
+                                text: !isCreate ? modelData.count + " tracks" : "PLAYLIST"
                                 color: "#AAAAAA"
                                 font.pixelSize: baseFontSize * rowScale
                                 elide: Text.ElideRight
@@ -291,6 +304,17 @@ Rectangle {
                         anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
 						onClicked: {
 							var item = modelData
+							// Special behaviour for CREATE PLAYLIST BUTTON
+							if (isCreate) {
+								if (editPlaylistPopup && typeof editPlaylistPopup.openForCreate === "function") {
+									editPlaylistPopup.openForCreate()
+								} else {
+									console.log("[SidebarPane] ERROR: editPlaylistPopup not found!")
+								}
+								return
+							}
+
+							// Normal selection behavior
                             if (sidebarListView.currentIndex === index) {
                                 // If already selected, unselect and select ALL TRACKS
                                 if (sidebarPane.defaultAllTracksIndex >= 0 && index !== sidebarPane.defaultAllTracksIndex) {
@@ -409,5 +433,17 @@ Rectangle {
 			}
 		}
 
-    } // End Sidebar ColumnLayout
+	} // End Sidebar ColumnLayout
+
+	EditPlaylistPopup {
+        id: editPlaylistPopup
+		onCreateRequested: {
+			console.log("[SidebarPane] Playlist created:", name)
+			cppPlaylistManager.refreshSidebarItems()
+		}
+		onEditRequested: {
+			console.log("[SidebarPane] Playlist saved:", updatedPlaylist.name)
+			cppPlaylistManager.refreshSidebarItems()
+		}	
+    }
 }

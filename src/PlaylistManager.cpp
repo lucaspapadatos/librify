@@ -23,10 +23,12 @@ QString PlaylistManager::playlistFilePath(const QString &name) const {
 
 QVariantList PlaylistManager::sidebarItems() const { return m_sidebarItems; }
 
-void PlaylistManager::createPlaylist(const QString &name) {
+void PlaylistManager::createPlaylist(const QString &name, const QString &image) {
     QJsonObject obj;
+	obj["id"] = name;
     obj["name"] = name;
-    obj["iconSource"] = "qrc:/icons/playlist_icon.png";
+    obj["iconSource"] = image;
+	obj["type"] = "local_playlist";
     obj["tracks"] = QJsonArray();
     savePlaylist(name, obj);
     loadPlaylists();
@@ -42,59 +44,18 @@ void PlaylistManager::refreshSidebarItems() {
     loadPlaylists();
 }
 
-//=============================================================================
-// SLOT: Loads tracks for a given playlist name
-//=============================================================================
-void PlaylistManager::loadTracksFor(const QString& playlistName) {
-    qDebug() << "[PlaylistManager] Request received to load tracks for playlist:" << playlistName;
-
-    QFile file(playlistFilePath(playlistName));
-	qWarning() << "Playlist: " << playlistName;
-
-    if (!file.exists()) {
-        qWarning() << "[PlaylistManager] Playlist file does not exist:" << playlistFilePath(playlistName);
-        emit tracksReadyForDisplay(QVariantList());
-        return;
-    }
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "[PlaylistManager] Failed to open playlist file:" << playlistFilePath(playlistName);
-        emit tracksReadyForDisplay(QVariantList());
-        return;
-    }
-
-    QByteArray data = file.readAll();
-    file.close();
-
-    QJsonDocument doc = QJsonDocument::fromJson(data);
-    if (!doc.isObject()) {
-        qWarning() << "[PlaylistManager] Invalid playlist JSON format in:" << playlistFilePath(playlistName);
-        emit tracksReadyForDisplay(QVariantList());
-        return;
-    }
-
-    QJsonObject obj = doc.object();
-    QJsonArray trackArray = obj.value("tracks").toArray();
-
-    QVariantList tracksToShow;
-    tracksToShow.reserve(trackArray.size());
-
-    for (const QJsonValue &val : trackArray) {
-        if (val.isObject()) {
-            tracksToShow.append(val.toObject().toVariantMap());
-        }
-    }
-
-    qDebug() << "[PlaylistManager] Emitting" << tracksToShow.size() << "tracks for display.";
-    emit tracksReadyForDisplay(tracksToShow);
-}
-
-
 void PlaylistManager::loadPlaylists() {
     m_sidebarItems.clear();
 
     QDir dir(playlistsDirPath());
     QFileInfoList files = dir.entryInfoList(QStringList() << "*.json", QDir::Files);
+	QVariantMap createMap;
+    createMap["type"] = "create_playlist";
+    createMap["name"] = "Create";
+    createMap["id"] = "Create";
+    createMap["iconSource"] = "qrc:/icons/all_tracks_icon.png";
+    createMap["count"] = 0;
+    m_sidebarItems.append(createMap);
 
     for (const QFileInfo &fi : files) {
         QFile file(fi.filePath());

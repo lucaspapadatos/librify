@@ -363,9 +363,9 @@ Rectangle {
 				Layout.preferredWidth: 24; Layout.preferredHeight: 24; Layout.alignment: Qt.AlignVCenter
 				source: {
 					if (cppPlaybackManager.muted || cppPlaybackManager.volume <= 0) 
-						return "qrc:/icons/MAC_CLOSE.png"; // Muted or zero volume
+						return "qrc:/icons/VOL_MUT.jpg"; // Muted or zero volume
 					if (cppPlaybackManager.volume < 0.5) 
-						return "qrc:/icons/MAC_MIN.png"; // Low volume
+						return "qrc:/icons/VOL_MID.jpg"; // Low volume
 					return "qrc:/icons/MAC_MAX.png"; // High volume
 				}
 				fillMode: Image.PreserveAspectFit

@@ -51,10 +51,6 @@ int main(int argc, char *argv[])
     qDebug() << "[main] tracksReadyForDisplay => updateTracks: Connected";
     QObject::connect(&localMusicManager, &LocalMusicManager::tracksReadyForDisplay,
                      &trackListModel, &TrackListModel::updateTracks);
-	qDebug() << "[main] tracksReadyForDisplay => updateTracks: Connected";
-    QObject::connect(&playlistManager, &PlaylistManager::tracksReadyForDisplay,
-                     &trackListModel, &TrackListModel::updateTracks);
-
     qDebug() << "[main] trackUpdated => updateTracks: Connected";
     QObject::connect(&localMusicManager, &LocalMusicManager::trackUpdated,
                      &trackListModel, &TrackListModel::updateTrack);

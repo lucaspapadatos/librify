@@ -1,6 +1,7 @@
 <RCC>
   <qresource prefix="/">
     <file>Main.qml</file>
+    <file>EditPlaylistPopup.qml</file>
     <file>EditTrackPopup.qml</file>
     <file>SidebarPane.qml</file>
     <file>TrackListPane.qml</file>
