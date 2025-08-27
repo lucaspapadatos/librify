@@ -32,11 +32,15 @@ public:
 	explicit PlaylistManager(QObject *parent = nullptr);
 
 	QVariantList sidebarItems() const;
+	Q_INVOKABLE QVariantList getPlaylists() const;
     Q_INVOKABLE void refreshSidebarItems();
 
 	Q_INVOKABLE void createPlaylist(const QString &name, const QString &image);
+	Q_INVOKABLE void editPlaylist(const QString &oldName, const QString &newName, const QString &newIconSource);
     Q_INVOKABLE void deletePlaylist(const QString &name);
 
+	Q_INVOKABLE void addTrack(const QString &playlistName, const QString &trackFilePath);
+	Q_INVOKABLE void removeTrack(const QString &playlistName, const QString &trackFilePath);
 
 signals:
 	void sidebarItemsChanged();
@@ -44,9 +48,10 @@ signals:
 private:
 	QString playlistsDirPath() const;
     QString playlistFilePath(const QString &name) const;
+    
+	void savePlaylist(const QString &name, const QJsonObject &playlistObj);
 
 	void loadPlaylists();
-    void savePlaylist(const QString &name, const QJsonObject &playlistObj);
 
 	QList<Playlist> m_playlists;
 	QVariantList m_sidebarItems;

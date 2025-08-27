@@ -7,28 +7,34 @@ import QtQuick.Dialogs 6.3
 Popup {
 	id: root
 	modal: true; anchors.centerIn: Overlay.overlay; width: 400; height: 500; padding: 10
+	font.family: customFont.name 
 
 	property bool isCreateMode: true	// creating or editing	
-	property var trackData: ({})
+	property var modelData
 
 	signal createRequested(string name, string imagePath)
-	signal editRequested(var updatedPlaylist)
+	signal editRequested(string name, string imagePath)
+	signal deleteRequested(string name)
+
+	FontLoader {
+		id: customFont
+		source: "qrc:/fonts/Readex_Pro/static/ReadexPro-Bold.ttf"
+	}
 
     function openForCreate() {
 		console.log("[EditPlaylistPopup] Opening popup in CREATE mode")
 		isCreateMode = true
-		trackData = {}
         titleField.text = ""
         imagePreview.source = "qrc:/icons/default_playlist_cover.png"
         root.open();
 	}
 
-	function openForEdit(playlistData) {
-        console.log("[EditPlaylistPopup] Opening in EDIT mode:", playlistData.name)
+	function openForEdit(playlist) {
+        console.log("[EditPlaylistPopup] Opening in EDIT mode:", playlist.name)
         isCreateMode = false
-        root.trackData = playlistData
-        titleField.text = playlistData.name
-        imagePreview.source = playlistData.iconSource ? playlistData.iconSource : "qrc:/icons/playlist_icon.png"
+        titleField.text = playlist.name
+		imagePreview.source = playlist.iconSource ? playlist.iconSource : "qrc:/icons/default_playlist_cover.png"
+		modelData = playlist
         root.open()
     }
 
@@ -59,7 +65,7 @@ Popup {
             title: "Select Cover Image"
             nameFilters: ["Image files (*.png *.jpg *.jpeg)"]
             onAccepted: {
-                imagePreview.source = selectedFile
+				imagePreview.source = selectedFile
             }
         }
 
@@ -77,8 +83,11 @@ Popup {
                         root.createRequested(titleField.text, imageFileDialog.selectedFile)
                     } else {
                         console.log("[EditPlaylistPopup] Saving playlist:", titleField.text)
-                        cppPlaylistManager.savePlaylist(titleField.text, updated)
-                        root.editRequested(updated)
+						cppPlaylistManager.editPlaylist(
+							modelData.name, titleField.text, 
+							imageFileDialog.selectedFile
+						)
+                        root.editRequested(titleField.text, imageFileDialog.selectedFile)
                     }
                     root.close()
                 }
@@ -86,7 +95,30 @@ Popup {
             Button {
                 text: "Cancel"
                 onClicked: root.close()
-            }
+			}
+			Item {
+				Layout.fillWidth: true
+			}
+			Button {
+				visible: !isCreateMode; Layout.alignment: Qt.AlignRight
+				text: "Delete"
+				background: Rectangle {
+                    radius: 4
+                    color: "#d32f2f" // Red color
+                }
+                contentItem: Text {
+                    text: "Delete"
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+				}
+				onClicked: {
+                    console.log("[EditPlaylistPopup] Deleting playlist:", modelData.name)
+                    cppPlaylistManager.deletePlaylist(modelData.name)
+                    root.deleteRequested(modelData.name)
+                    root.close()
+                }
+			}
         }
     }
 }

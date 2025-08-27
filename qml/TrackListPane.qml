@@ -375,7 +375,7 @@ Rectangle {
                         }
                     }
                 }
-                Row { // delegateContentRow
+                RowLayout { // delegateContentRow
                     id: delegateContentRow
                     anchors.fill: parent
                     anchors.margins: 5 * tracklistPane.rowScale
@@ -385,9 +385,8 @@ Rectangle {
                         id: albumArt
                         width: tracklistPane.baseImageSize * tracklistPane.rowScale
                         height: tracklistPane.baseImageSize * tracklistPane.rowScale
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: Qt.darker(tracklistPane.themeColor, 2.5) // Themed placeholder
-                        radius: 3; visible: width > 0 && height > 0
+                        color: Qt.darker(tracklistPane.themeColor, 2.5)
+						radius: 3; visible: width > 0 && height > 0
                         Image {
                             id: trackImage; anchors.fill: parent; fillMode: Image.PreserveAspectCrop; smooth: true
                             source: modelData.source === "local" && modelData.imageBase64 ? ("data:" + modelData.imageMimeType + ";base64," + modelData.imageBase64) : ""
@@ -402,8 +401,9 @@ Rectangle {
                         }
                     }
                     RowLayout { // trackInfoTextLayout
-                        id: trackInfoTextLayout
-                        Layout.fillWidth: true; Layout.fillHeight: true
+						id: trackInfoTextLayout
+						Layout.fillWidth: true
+						Layout.alignment: Qt.AlignTop
                         spacing: 5 * tracklistPane.rowScale
                         readonly property real _contentWidthForTextItems: Math.max(0, delegateRoot._widthAllocatedToTrackInfoTextLayout - (trackInfoTextLayout.spacing * 2))
 
@@ -411,7 +411,7 @@ Rectangle {
                         Text {
                             id: titleText
                             Layout.preferredWidth: trackInfoTextLayout._contentWidthForTextItems * currentFlexValues.title
-                            Layout.minimumWidth: 40
+                            Layout.minimumWidth: 40; horizontalAlignment: Text.AlignLeft
                             text: modelData.title
                             elide: Text.ElideRight
                             color: titleMouseArea.containsMouse ? Qt.lighter(themeColor, 2.5) : themeColor
@@ -457,8 +457,100 @@ Rectangle {
                                 cursorShape: Qt.PointingHandCursor
                             }
                         }
-                    }
-                }
+					} // End track info text layout
+				} // End Content Row
+				Button {
+					id: optionsButton; 
+					width: 28; height: 28
+					anchors.top: parent.top
+					anchors.right: parent.right
+					anchors.margins: 4
+					background: Rectangle {	color: "transparent" }
+					contentItem: Text {
+						text: "\u22EE" // Vertical ellipsis
+						font.pixelSize: 18
+						font.bold: true
+						color: Qt.lighter(themeColor, 2.5)
+						horizontalAlignment: Text.AlignHCenter
+						verticalAlignment: Text.AlignVCenter
+					}
+					MouseArea {
+						hoverEnabled: true
+						width: parent.width
+						height: parent.height
+						cursorShape: Qt.PointingHandCursor
+						onClicked: optionsMenu.open()
+					}
+				} // End options button
+				Menu {
+					id: optionsMenu
+					x: optionsButton.x
+					y: optionsButton.y + optionsButton.height
+					width: 160
+					function loadPlaylistsIntoSubmenu(submenu, isRemoving) {
+						while (submenu.count > 1) {
+							submenu.removeItem(submenu.itemAt(submenu.count - 1))
+						}
+						try {
+							var playlistsData = cppPlaylistManager.sidebarItems
+							console.log("Loaded playlists:", playlistsData.length)
+							
+							// Add each playlist as a menu item
+							for (var i = 0; i < playlistsData.length; i++) {
+								var playlist = playlistsData[i]
+								var menuItem = Qt.createQmlObject(`
+									import QtQuick.Controls 2.15
+									MenuItem {
+										property string playlistName: "${playlist.name}"
+										property bool isRemoveAction: ${isRemoving}
+										text: "${playlist.name}"
+										
+										onTriggered: {
+											if (isRemoveAction) {
+												console.log("Removing track from playlist:", playlistName)
+												cppPlaylistManager.removeTrack(playlistName, modelData.filePath)
+											} else {
+												console.log("Adding track to playlist:", playlistName)
+												cppPlaylistManager.addTrack(playlistName, modelData.filePath)
+											}
+										}
+									}
+								`, submenu, "playlistMenuItem" + i)
+
+								submenu.addItem(menuItem)
+							}
+						} catch (error) {
+							console.error("Error loading playlists:", error)
+						}
+					}
+
+					Menu {
+						id: addPlaylistSubmenu
+						title: "Add to playlist"
+						width: 200
+						onAboutToShow: { optionsMenu.loadPlaylistsIntoSubmenu(addPlaylistSubmenu, false) }
+						MenuItem {
+							text: "Create new playlist..."
+							onTriggered: {
+								console.log("Create new playlist for track:", modelData.title)
+								// TODO: Open create playlist dialog
+							}		
+						}
+					}
+					Menu {
+						id: removePlaylistSubmenu
+						title: "Remove from playlist"
+						width: 200
+						onAboutToShow: { optionsMenu.loadPlaylistsIntoSubmenu(removePlaylistSubmenu, true) }
+						MenuItem {
+							text: "Remove from ALL"
+							onTriggered: {
+								console.log("Create new playlist for track:", modelData.title)
+								// TODO: remove from all playlist
+							}		
+						}
+					}
+				} // End options dropdown menu
             } // End delegate
         } // End ListView
 	}

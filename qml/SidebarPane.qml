@@ -301,7 +301,23 @@ Rectangle {
 
                     MouseArea {
 						id: delegateMouseArea
-                        anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+						anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+						acceptedButtons: Qt.LeftButton | Qt.RightButton
+						onPressed: (mouse) => {
+							var item = modelData
+							// === RIGHT CLICK: Open Edit Playlist Popup ===
+							if (mouse.button === Qt.RightButton) {
+								if (item.type === "local_playlist") {
+									console.log("[SidebarPane] Right-clicked playlist:", item.name)
+									if (editPlaylistPopup && typeof editPlaylistPopup.openForEdit === "function") {
+										editPlaylistPopup.openForEdit(item)
+									} else {
+										console.log("[SidebarPane] ERROR: editPlaylistPopup not found!")
+									}
+								}
+								return
+							}
+						}
 						onClicked: {
 							var item = modelData
 							// Special behaviour for CREATE PLAYLIST BUTTON
@@ -315,20 +331,9 @@ Rectangle {
 							}
 
 							// Normal selection behavior
-                            if (sidebarListView.currentIndex === index) {
-                                // If already selected, unselect and select ALL TRACKS
-                                if (sidebarPane.defaultAllTracksIndex >= 0 && index !== sidebarPane.defaultAllTracksIndex) {
-                                    item = sidebarListView.model[sidebarPane.defaultAllTracksIndex]
-                                    sidebarListView.currentIndex = sidebarPane.defaultAllTracksIndex
-                                    console.log("Switched to ALL TRACKS:", item.name)
-                                } else {
-									console.log("Maintaining current selection")
-									return;
-                                }
-                            } else {
+                            // If already selected, unselect and select ALL TRACKS
 								sidebarListView.currentIndex = index
 								console.log("Selected:", item.name, "ID:", item.id, "Type:", item.type)
-							}
 							sidebarPane.currentSelectedId = item.id
 							sidebarPane.sidebarSelected(item.id)
 
@@ -437,13 +442,17 @@ Rectangle {
 
 	EditPlaylistPopup {
         id: editPlaylistPopup
-		onCreateRequested: {
+		onCreateRequested: (name, image) => {
 			console.log("[SidebarPane] Playlist created:", name)
 			cppPlaylistManager.refreshSidebarItems()
 		}
-		onEditRequested: {
-			console.log("[SidebarPane] Playlist saved:", updatedPlaylist.name)
+		onEditRequested: (name, image) => {
+			console.log("[SidebarPane] Playlist saved:", name)
 			cppPlaylistManager.refreshSidebarItems()
-		}	
+		}
+		onDeleteRequested: (name) => {
+			console.log("[SidebarPane] Playlist deleted:", name)
+			cppPlaylistManager.refreshSidebarItems()
+		}
     }
 }

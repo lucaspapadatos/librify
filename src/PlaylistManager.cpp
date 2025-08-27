@@ -21,6 +21,13 @@ QString PlaylistManager::playlistFilePath(const QString &name) const {
     return playlistsDirPath() + "/" + name + ".json";
 }
 
+QVariantList PlaylistManager::getPlaylists() const { 
+	if (m_sidebarItems.size() <= 1) {
+		return QVariantList();
+	}
+	return m_sidebarItems.mid(1);
+}
+
 QVariantList PlaylistManager::sidebarItems() const { return m_sidebarItems; }
 
 void PlaylistManager::createPlaylist(const QString &name, const QString &image) {
@@ -86,4 +93,115 @@ void PlaylistManager::savePlaylist(const QString &name, const QJsonObject &playl
 
     QJsonDocument doc(playlistObj);
     file.write(doc.toJson());
+}
+
+void PlaylistManager::editPlaylist(const QString &oldName, const QString &newName, const QString &newIconSource) {
+	// Locate the existing playlist file
+    QFile file(playlistFilePath(oldName));
+    if (!file.exists()) {
+        qWarning() << "[PlaylistManager] Playlist file not found:" << file.fileName();
+        return;
+    }
+
+    // Open existing file for reading
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "[PlaylistManager] Failed to open playlist file for reading:" << file.fileName();
+        return;
+    }
+
+    // Parse existing JSON data
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    file.close();
+
+    if (!doc.isObject()) {
+        qWarning() << "[PlaylistManager] Invalid playlist JSON:" << file.fileName();
+        return;
+    }
+
+    QJsonObject playlistObj = doc.object();
+
+    // Update name and iconSource
+    playlistObj["name"] = newName;
+    playlistObj["iconSource"] = newIconSource;
+
+    // If the playlist name changed, remove old file and create a new one
+    QString newPath = playlistFilePath(newName);
+    if (oldName != newName && QFile::exists(newPath)) {
+        qWarning() << "[PlaylistManager] A playlist with the new name already exists!";
+        return;
+    }
+
+    if (oldName != newName) {
+        QFile::remove(playlistFilePath(oldName)); // delete old file
+    }
+
+    // Save to the correct path
+    QFile saveFile(newPath);
+    if (!saveFile.open(QIODevice::WriteOnly)) {
+        qWarning() << "[PlaylistManager] Failed to open playlist file for writing:" << saveFile.fileName();
+        return;
+    }
+
+    // Write updated JSON back
+    QJsonDocument updatedDoc(playlistObj);
+    saveFile.write(updatedDoc.toJson());
+    saveFile.close();
+
+    qDebug() << "[PlaylistManager] Playlist updated successfully:" << newName;
+}
+
+void PlaylistManager::addTrack(const QString &playlistName, const QString &trackFilepath) {
+    QFile file(playlistFilePath(playlistName));
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "[PlaylistManager] Failed to open playlist to add track:" << file.fileName();
+        return;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    file.close();
+
+    if (!doc.isObject()) {
+        qWarning() << "[PlaylistManager] Invalid playlist JSON:" << file.fileName();
+        return;
+    }
+
+    QJsonObject playlistObj = doc.object();
+    QJsonArray tracks = playlistObj["tracks"].toArray();
+
+    tracks.append(QJsonValue(trackFilepath));
+    playlistObj["tracks"] = tracks;
+
+    savePlaylist(playlistName, playlistObj);
+	refreshSidebarItems();   
+}
+
+void PlaylistManager::removeTrack(const QString &playlistName, const QString &trackFilepath) {
+    QFile file(playlistFilePath(playlistName));
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "[PlaylistManager] Failed to open playlist to remove track:" << file.fileName();
+        return;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    file.close();
+
+    if (!doc.isObject()) {
+        qWarning() << "[PlaylistManager] Invalid playlist JSON:" << file.fileName();
+        return;
+    }
+
+    QJsonObject playlistObj = doc.object();
+    QJsonArray tracks = playlistObj["tracks"].toArray();
+    QJsonArray newTracks;
+
+    // Create a new array containing all tracks except the one to be removed
+    for (const QJsonValue &value : tracks) {
+        if (value.toString() != trackFilepath) {
+            newTracks.append(value);
+        }
+    }
+    playlistObj["tracks"] = newTracks;
+
+    savePlaylist(playlistName, playlistObj);
+    refreshSidebarItems();
 }
